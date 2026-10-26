@@ -1,0 +1,40 @@
+name: CI
+on:
+  push:
+  pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  accent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build development image
+        run: docker build -t sun-accent-popup-dev .
+      - name: Build dependencies and test
+        # The runner UID has no writable home in the image; keep GTK data and caches in the workspace.
+        run: >-
+          docker run --rm --user "$(id -u):$(id -g)"
+          -v /etc/passwd:/etc/passwd:ro
+          -v /etc/group:/etc/group:ro
+          -e XDG_DATA_HOME=/workspaces/sun_accent_popup/tmp/ci/data
+          -e XDG_CACHE_HOME=/workspaces/sun_accent_popup/tmp/ci/cache
+          -e XDG_CONFIG_HOME=/workspaces/sun_accent_popup/tmp/ci/config
+          -e GIT_CONFIG_COUNT=1
+          -e GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf
+          -e GIT_CONFIG_VALUE_0=git@github.com:
+          -v "$PWD:/workspaces/sun_accent_popup" sun-accent-popup-dev
+          bash -o pipefail -c 'mkdir -p build "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" &&
+          { vcs import --input deps.repos . && ./scripts/build-dependencies.sh && ./build.sh; } 2>&1 | tee build/test-results.log'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sun-accent-popup-linux
+          path: |
+            build/sun_accent_popup
+            build/sun-version.txt
+            build/test-results.log
+            tmp/ibus-test/*.log

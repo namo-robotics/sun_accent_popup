@@ -1,0 +1,54 @@
+using std;
+
+/** Isolates the native IBus boundary from the testable Sun state machine. */
+public module accent_ibus {
+
+  /** Runs the native engine factory with a synchronous named Sun event handler. */
+  extern "C" function sa_run(callback: function (raw_ptr<u8>, u32, u32, u32, u32) i32, register_component: i32, delay: u32) i32;
+
+  /** Reads a scalar snapshot belonging to one native input context. */
+  extern "C" function sa_get(engine: raw_ptr<u8>, field: u32) u32;
+
+  /** Updates a scalar snapshot without retaining any Sun references. */
+  extern "C" function sa_set(engine: raw_ptr<u8>, field: u32, value: u32) void;
+
+  /** Copies text effects into IBus and updates the context's native hold timer. */
+  extern "C" function sa_apply(engine: raw_ptr<u8>, choices: raw_ptr<u8>, selected: u32, commit: raw_ptr<u8>, arm: i32) void;
+
+  /** Computes one synchronous key decision using an owned snapshot, then applies its effects. */
+  function dispatch(engine: raw_ptr<u8>, kind: u32, key: u32, code: u32, modifiers: u32) i32 {
+    var machine = accent.Machine();
+    unsafe {
+      machine.pending = sa_get(engine, 0);
+      machine.held = sa_get(engine, 1);
+      machine.code = sa_get(engine, 2);
+      machine.popup = sa_get(engine, 3) != 0;
+      machine.selected = _convert<i64>(sa_get(engine, 4));
+      machine.sensitive = sa_get(engine, 5) != 0;
+    };
+    var effect = machine.handle(kind, key, code, modifiers);
+    var choices = String("");
+    if (machine.popup) {
+      choices = accent.candidates(machine.pending);
+    }
+    unsafe {
+      sa_set(engine, 0, machine.pending);
+      sa_set(engine, 1, machine.held);
+      sa_set(engine, 2, machine.code);
+      sa_set(engine, 3, machine.popup ? 1 : 0);
+      sa_set(engine, 4, _convert<u32>(machine.selected));
+      sa_set(engine, 5, machine.sensitive ? 1 : 0);
+      sa_apply(engine, choices.c_str(), _convert<u32>(machine.selected), effect.commit.c_str(), effect.arm ? 1 : 0);
+    };
+    return effect.consumed ? 1 : 0;
+  }
+
+  /** Runs the input method independently of the settings window. */
+  public function run(register_component: bool) i32 {
+    var result = unsafe { sa_run(dispatch, register_component ? 1 : 0, 500); };
+    if (result != 0) {
+      eprintln("Cannot start Sun Accent Popup: check that IBus is running and no other copy owns the engine.");
+    }
+    return result;
+  }
+}

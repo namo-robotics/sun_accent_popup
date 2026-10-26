@@ -1,0 +1,38 @@
+using std;
+
+/** Checks the candidate catalogue independently of a desktop session. */
+module catalogue_tests {
+
+  /** Propagates failed catalogue assertions to the test runner. */
+  enum TestResult<T> { Ok(T), Assertion(std.test.AssertionError) }
+
+  /** Confirms that unsupported keys remain ordinary keyboard input. */
+  test_function unsupported_keys() TestResult<void> {
+    var value = accent.candidates(98);
+    try std.test.assert(value.is_empty());
+    value = accent.candidates(0);
+    try std.test.assert(value.is_empty());
+    return TestResult.Ok;
+  }
+
+  /** Checks case-sensitive choices and the numeric selection limit. */
+  test_function case_and_selection() TestResult<void> {
+    var lower = accent.candidates(97);
+    var upper = accent.candidates(65);
+    try std.test.assert(lower.equals_literal("à á â ä æ ã å ā"));
+    try std.test.assert(upper.equals_literal("À Á Â Ä Æ Ã Å Ā"));
+    var a = make_heap_allocator();
+    for (var key: u32 = 65; key <= 122; key += 1) {
+      var text = accent.candidates(key);
+      var choices = text.split_whitespace(a);
+      try std.test.assert(choices.size() <= 9);
+      for (var i: i64 = 0; i < choices.size(); i += 1) {
+        try std.test.assert(not choices[i].is_empty());
+        for (var j: i64 = 0; j < i; j += 1) {
+          try std.test.assert(not choices[i].equals(choices[j]));
+        }
+      }
+    }
+    return TestResult.Ok;
+  }
+}

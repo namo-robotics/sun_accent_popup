@@ -1,0 +1,5 @@
+/** Produces a companion test runner for the platform-independent accent catalogue. */
+function main() i32 {
+  return 0;
+}
+manifest { libraries: ["stdlib.moon"], source_files: ["../src/state.sun"], test_files: ["catalogue.sun", "machine.sun"] }

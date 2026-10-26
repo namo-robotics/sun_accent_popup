@@ -1,0 +1,41 @@
+{
+  "root": true,
+  "sun_path": [
+    "build",
+    "src/sun_ui/build",
+    "src/sun_gobject/build"
+  ],
+  "entrypoints": [
+    {
+      "name": "sun_accent_popup",
+      "path": "src/main.sun",
+      "type": "binary",
+      "output_name": "build/sun_accent_popup"
+    },
+    {
+      "name": "tests",
+      "path": "tests/main.sun",
+      "type": "binary",
+      "output_name": "build/accent-tests",
+      "test_binary_name": "build/accent-tests_test"
+    },
+    {
+      "name": "build-tool",
+      "path": "src/tools/build.sun",
+      "type": "binary",
+      "output_name": "build/accent-build"
+    },
+    {
+      "name": "ibus-bridge",
+      "path": "native/ibus_bridge.c",
+      "type": "library",
+      "output_name": "build/native/libaccent_ibus.a"
+    },
+    {
+      "name": "ibus-client",
+      "path": "tests/ibus_client.c",
+      "type": "binary",
+      "output_name": "build/ibus-client"
+    }
+  ]
+}

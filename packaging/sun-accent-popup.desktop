@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Sun Accent Popup
+Comment=Practice typing accents with the Sun input method
+Exec=/usr/local/bin/sun_accent_popup
+Icon=input-keyboard
+Terminal=false
+Categories=Utility;Accessibility;

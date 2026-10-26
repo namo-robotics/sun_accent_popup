@@ -1,0 +1,76 @@
+using std;
+
+/** Presents setup guidance and an ordinary client text field using sun_ui. */
+module accent_app {
+
+  /** Adds a readable paragraph to the current window. */
+  function label(view: ref ui.View, key: i64, text: String) void {
+    var element = ui.Element(ui.Key(key), ui.Kind.Label);
+    element.text = text;
+    element.margin = 8;
+    view.append(-1, element);
+  }
+
+  /** Builds the practice window without owning input-method or GTK handles. */
+  function view(state: const ref accent.State) ui.View {
+    var a = make_heap_allocator();
+    var result = ui.View(a);
+    label(result, 1, String("Sun Accent Popup"));
+    label(result, 2, String("Select Sun Accent Popup in GNOME’s input sources first."));
+    label(result, 3, String("Hold a, c, e, i, n, o, s, u, y, or z to see accents."));
+    label(result, 4, String("Choose with a number, ← / → and Enter, or a click. Esc keeps the plain letter."));
+    var input = ui.Element(ui.Key(5), ui.Kind.TextInput);
+    input.text = state.text.clone(a);
+    input.action = 1;
+    input.margin = 16;
+    input.min_width = 600;
+    result.append(-1, input);
+    label(result, 6, String("Try: café · mañana · über · français · São Paulo"));
+    label(result, 7, String("The selected input method also works in other IBus-enabled applications."));
+    result.button(8, String("Clear practice text"), 2, 0);
+    return result;
+  }
+
+  /** Retains edits in application state and clears only the practice field on request. */
+  function handle(state: ref accent.State, event: const ref ui.Event, queue: ref ui.EventQueue) SystemResult<void> {
+    if (event.action == 1 and event.value.kind == ui.ValueKind.Text) {
+      state.text = event.value.text.clone(make_heap_allocator());
+    } else if (event.action == 2) {
+      state.text = String("");
+    }
+    return SystemResult.Ok;
+  }
+
+  /** Runs the independent practice window or checks its native text event pipeline. */
+  public function run(automated: bool) SystemResult<void> {
+    var title = String("Sun Accent Popup");
+    var renderer = try ui_gtk.Renderer(title);
+    try renderer.set_default_size(720, 340);
+    var session = ui.Session<accent.State>(accent.State(), view, handle);
+    try session.render(renderer);
+    if (automated) {
+      var text = String("café · É · ñ");
+      try renderer.edit(session.tree.identity(5), text, 0);
+      renderer.poll(session.tree, session.queue, false);
+      try session.dispatch(renderer);
+      if (not session.state.text.equals(text)) {
+        return SystemResult.Error(Error(1, "Practice field lost Unicode input"));
+      }
+      renderer.click(session.tree.identity(8));
+      renderer.poll(session.tree, session.queue, false);
+      try session.dispatch(renderer);
+      if (not session.state.text.is_empty()) {
+        return SystemResult.Error(Error(1, "Clear did not update the practice field"));
+      }
+      session.tree.shutdown(renderer);
+      println("Accent practice window acceptance passed");
+      return SystemResult.Ok;
+    }
+    while (renderer.running()) {
+      renderer.poll(session.tree, session.queue, true);
+      try session.dispatch(renderer);
+    }
+    session.tree.shutdown(renderer);
+    return SystemResult.Ok;
+  }
+}

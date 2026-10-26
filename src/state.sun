@@ -1,0 +1,162 @@
+using std;
+
+/** Defines the accent choices shared by the desktop input service and its settings UI. */
+public module accent {
+
+  /** Returns space-separated candidates for a Latin key, preserving the typed case. */
+  public function candidates(key: u32) String {
+    return match key {
+      97 => String("à á â ä æ ã å ā"),
+      65 => String("À Á Â Ä Æ Ã Å Ā"),
+      99 => String("ç ć č"),
+      67 => String("Ç Ć Č"),
+      101 => String("è é ê ë ē ė ę"),
+      69 => String("È É Ê Ë Ē Ė Ę"),
+      105 => String("ì í î ï ī į"),
+      73 => String("Ì Í Î Ï Ī Į"),
+      110 => String("ñ ń ň"),
+      78 => String("Ñ Ń Ň"),
+      111 => String("ò ó ô ö œ õ ø ō"),
+      79 => String("Ò Ó Ô Ö Œ Õ Ø Ō"),
+      115 => String("ß ś š"),
+      83 => String("ẞ Ś Š"),
+      117 => String("ù ú û ü ū ů"),
+      85 => String("Ù Ú Û Ü Ū Ů"),
+      121 => String("ý ÿ"),
+      89 => String("Ý Ÿ"),
+      122 => String("ź ż ž"),
+      90 => String("Ź Ż Ž"),
+      _ => String("")
+    };
+  }
+
+  /** Owns the practice field independently of native desktop handles. */
+  public class State {
+    public var text: String = String("");
+  }
+}
+
+/** Implements input-method behavior without native handles or desktop dependencies. */
+public module accent {
+
+  /** Describes effects to apply after processing one input-method event. */
+  public class Effects {
+    public var consumed: bool = false;
+    public var commit: String = String("");
+    public var arm: bool = false;
+  }
+
+  /** Owns one input context's pending letter, hold, and candidate selection. */
+  public class Machine {
+    public var pending: u32 = 0;
+    public var held: u32 = 0;
+    public var code: u32 = 0;
+    public var popup: bool = false;
+    public var selected: i64 = 0;
+    public var sensitive: bool = false;
+
+    /** Ends a pending hold without editing the application's existing text. */
+    method finish() void {
+      this.pending = 0;
+      this.popup = false;
+      this.selected = 0;
+    }
+
+    /** Commits a valid candidate and suppresses remaining repeats of the original key. */
+    method choose(effect: ref Effects, index: i64) void {
+      var a = make_heap_allocator();
+      var text = candidates(this.pending);
+      var values = text.split_whitespace(a);
+      if (this.popup and index >= 0 and index < values.size()) {
+        effect.commit.append(values[index]);
+        this.finish();
+      }
+    }
+
+    /** Handles keys, hold expiry, context reset, mouse choice, and sensitive-field changes. */
+    public method handle(kind: u32, key: u32, code: u32, modifiers: u32) Effects {
+      var result = Effects();
+      if (kind == 2 or kind == 4) {
+        this.finish();
+        this.held = 0;
+        this.code = 0;
+        if (kind == 4) {
+          this.sensitive = key != 0;
+        }
+        return result;
+      }
+      if (kind == 1) {
+        this.popup = this.pending != 0 and this.held != 0;
+        return result;
+      }
+      if (kind == 3) {
+        this.choose(result, _convert<i64>(key));
+        return result;
+      }
+      var release = (modifiers & 1073741824) != 0;
+      if (release) {
+        if (this.held != 0 and this.code == code) {
+          this.held = 0;
+          if (not this.popup) {
+            this.finish();
+          }
+        }
+        return result;
+      }
+      // Shift and Caps Lock preserve the case captured on the initial press.
+      if (key == 65505 or key == 65506 or key == 65509) {
+        return result;
+      }
+      // Control, Alt, Super, Hyper, Meta, and AltGr keep their native shortcut behavior.
+      if (this.sensitive or (modifiers & 469762252) != 0) {
+        this.finish();
+        this.held = 0;
+        return result;
+      }
+      if (this.held != 0 and this.code == code) {
+        result.consumed = true;
+        return result;
+      }
+      if (this.popup) {
+        result.consumed = true;
+        var a = make_heap_allocator();
+        var choices = candidates(this.pending).split_whitespace(a);
+        if (key >= 49 and key <= 57) {
+          this.choose(result, _convert<i64>(key - 49));
+          return result;
+        }
+        if (key == 65361 or key == 65363) {
+          this.selected = (this.selected + (key == 65361 ? choices.size() - 1 : 1)) % choices.size();
+          return result;
+        }
+        if (key == 65293 or key == 32) {
+          this.choose(result, this.selected);
+          return result;
+        }
+        if (key == 65307) {
+          this.finish();
+          return result;
+        }
+      }
+      if (key == 65288 and this.pending != 0) {
+        this.finish();
+        this.held = 0;
+        this.code = 0;
+        result.consumed = false;
+        return result;
+      }
+      this.finish();
+      this.held = 0;
+      this.code = 0;
+      result.consumed = false;
+      var choices = candidates(key);
+      if (not choices.is_empty()) {
+        this.pending = key;
+        this.held = key;
+        this.code = code;
+        result.arm = true;
+      }
+      return result;
+    }
+  }
+}

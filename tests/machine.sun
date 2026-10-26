@@ -1,0 +1,95 @@
+using std;
+
+/** Exercises hold behavior without GTK, IBus, or a running desktop. */
+module machine_tests {
+
+  /** Propagates assertion failures from state transitions. */
+  enum TestResult<T> { Ok(T), Assertion(std.test.AssertionError) }
+
+  /** A tap passes through without composition or a delayed commit. */
+  test_function tap_and_repeat() TestResult<void> {
+    var state = accent.Machine();
+    var press = state.handle(0, 97, 38, 0);
+    try std.test.assert(not press.consumed and press.arm);
+    try std.test.assert(press.commit.is_empty());
+    var repeat = state.handle(0, 97, 38, 0);
+    try std.test.assert(repeat.consumed and not repeat.arm and repeat.commit.is_empty());
+    var release = state.handle(0, 97, 38, 1073741824);
+    try std.test.assert(not release.consumed and release.commit.is_empty());
+    try std.test.assert(state.pending == 0 and state.held == 0);
+    state.handle(1, 0, 0, 0);
+    try std.test.assert(not state.popup);
+    return TestResult.Ok;
+  }
+
+  /** The menu remains after release, accepts a number, and keeps uppercase choices. */
+  test_function hold_uppercase_and_number() TestResult<void> {
+    var state = accent.Machine();
+    state.handle(0, 69, 26, 1);
+    state.handle(1, 0, 0, 0);
+    try std.test.assert(state.popup);
+    var release = state.handle(0, 101, 26, 1073741824);
+    try std.test.assert(release.commit.is_empty() and state.popup);
+    var choose = state.handle(0, 50, 11, 0);
+    try std.test.assert(choose.consumed and choose.commit.equals_literal("É"));
+    try std.test.assert(not state.popup and state.pending == 0);
+    return TestResult.Ok;
+  }
+
+  /** Mouse selection and arrow navigation commit exactly one candidate. */
+  test_function navigation_and_mouse() TestResult<void> {
+    var state = accent.Machine();
+    state.handle(0, 110, 57, 0);
+    state.handle(1, 0, 0, 0);
+    state.handle(0, 65363, 114, 0);
+    var choose = state.handle(0, 65293, 36, 0);
+    try std.test.assert(choose.commit.equals_literal("ń"));
+    var repeat = state.handle(0, 110, 57, 0);
+    try std.test.assert(repeat.consumed and repeat.commit.is_empty());
+    state.handle(0, 110, 57, 1073741824);
+    state.handle(0, 99, 54, 0);
+    state.handle(1, 0, 0, 0);
+    choose = state.handle(3, 0, 0, 0);
+    try std.test.assert(choose.commit.equals_literal("ç"));
+    return TestResult.Ok;
+  }
+
+  /** Escape keeps the base, backspace removes it, and focus resets cannot leak composition. */
+  test_function cancellation() TestResult<void> {
+    var state = accent.Machine();
+    state.handle(0, 97, 38, 0);
+    state.handle(1, 0, 0, 0);
+    var escape = state.handle(0, 65307, 9, 0);
+    try std.test.assert(escape.consumed and escape.commit.is_empty());
+    state.handle(2, 0, 0, 0);
+    state.handle(0, 97, 38, 0);
+    var erase = state.handle(0, 65288, 22, 0);
+    try std.test.assert(not erase.consumed and erase.commit.is_empty() and state.pending == 0);
+    state.handle(2, 0, 0, 0);
+    state.handle(0, 101, 26, 0);
+    state.handle(2, 0, 0, 0);
+    state.handle(1, 0, 0, 0);
+    try std.test.assert(not state.popup and state.held == 0);
+    return TestResult.Ok;
+  }
+
+  /** Fast typing preserves ordering while shortcuts, AltGr, and sensitive fields pass through. */
+  test_function passthrough() TestResult<void> {
+    var state = accent.Machine();
+    state.handle(0, 97, 38, 0);
+    var next = state.handle(0, 98, 56, 0);
+    try std.test.assert(not next.consumed and next.commit.is_empty());
+    state.handle(2, 0, 0, 0);
+    var shortcut = state.handle(0, 97, 38, 4);
+    try std.test.assert(not shortcut.consumed and state.pending == 0);
+    var altgr = state.handle(0, 97, 38, 128);
+    try std.test.assert(not altgr.consumed and state.pending == 0);
+    state.handle(4, 1, 0, 0);
+    var password = state.handle(0, 101, 26, 0);
+    try std.test.assert(not password.consumed and state.pending == 0);
+    state.handle(4, 0, 0, 0);
+    var regular = state.handle(0, 101, 26, 0);
+    try std.test.assert(not regular.consumed and regular.arm);
+    return TestResult.Ok;
+  }
+}
