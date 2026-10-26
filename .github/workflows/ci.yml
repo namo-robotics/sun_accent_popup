@@ -124,8 +124,8 @@ jobs:
           prerelease: true
           fail_on_unmatched_files: true
           files: |
-            build/release/*.deb
-            build/release/sun-version.txt
+            build/release/build/*.deb
+            build/release/build/sun-version.txt
           body: |
             Latest tested development build from main.
 
