@@ -1,0 +1,9 @@
+#!/bin/sh
+# Connect the packaged engine to the user's host IBus session.
+set -eu
+: "${SNAP:?Run this engine through snap run sun-accent-popup.engine}"
+: "${SNAP_REAL_HOME:?Snap must supply the desktop user's home directory}"
+# The desktop-legacy interface permits reading the host IBus address files.
+export XDG_CONFIG_HOME="$SNAP_REAL_HOME/.config"
+unset IBUS_USE_PORTAL
+exec "$SNAP/usr/bin/sun_accent_popup" --ibus

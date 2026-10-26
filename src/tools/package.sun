@@ -1,0 +1,144 @@
+using std;
+
+/** Packages the tested application for Debian and Snapcraft. */
+module accent_package {
+
+  /** Runs a packaging utility and reports its output on failure. */
+  function capture(command: ref std.process.Command) SystemResult<String> {
+    var output = try command.output();
+    if (output.status() != 0) {
+      eprint(output.stderr());
+      return SystemResult.Error(Error(output.status(), "Packaging command failed"));
+    }
+    return SystemResult.Ok(output.stdout().clone(make_heap_allocator()));
+  }
+
+  /** Reads one Debian changelog field without duplicating package metadata. */
+  function field(name: static_ptr<u8>) SystemResult<String> {
+    var command = std.process.Command(make_heap_allocator(), "dpkg-parsechangelog");
+    command.add_arg("-S");
+    command.add_arg(name);
+    var result = try capture(command);
+    result.trim();
+    return SystemResult.Ok(result);
+  }
+
+  /** Copies a required file with explicit install permissions. */
+  function install(source: String, destination: String, executable: bool) SystemResult<void> {
+    var command = std.process.Command(make_heap_allocator(), "install");
+    command.add_arg("-D");
+    command.add_arg("-m");
+    command.add_arg(executable ? "755" : "644");
+    command.add_arg(source);
+    command.add_arg(destination);
+    var status = try command.status();
+    if (status != 0) {
+      return SystemResult.Error(Error(status, "Cannot stage application payload"));
+    }
+    return SystemResult.Ok;
+  }
+
+  /** Reads an explicit dependency source override for license notices. */
+  function source(name: static_ptr<u8>, fallback: static_ptr<u8>) String {
+    var a = make_heap_allocator();
+    var env = std.env.Env(a);
+    return match env.get(name) {
+      Option.Some(value) => value.clone(a),
+      Option.None => String(fallback)
+    };
+  }
+
+  /** Creates a clean payload without installing or changing the desktop input source. */
+  public function stage(snap: bool) SystemResult<void> {
+    var a = make_heap_allocator();
+    var target = try build_targets.load("sun_accent_popup");
+    var root = String(snap ? "build/accent-package/root" : "build/accent-deb/root");
+    var clear = std.process.Command(a, "rm");
+    clear.add_arg("-rf");
+    clear.add_arg(root);
+    var status = try clear.status();
+    if (status != 0) {
+      return SystemResult.Error(Error(status, "Cannot clear old package payload"));
+    }
+    try install(target.output.clone(a), `${root}/usr/bin/sun_accent_popup`, true);
+    if (snap) {
+      try install(String("snap/local/engine"), `${root}/bin/engine`, true);
+      try install(String("snap/local/sun-accent-popup.xml"), `${root}/usr/share/ibus/component/sun-accent-popup.xml`, false);
+      try install(String("snap/local/sun-accent-popup.desktop"), `${root}/usr/share/applications/sun-accent-popup.desktop`, false);
+    } else {
+      try install(String("debian/sun-accent-popup.xml"), `${root}/usr/share/ibus/component/sun-accent-popup.xml`, false);
+      try install(String("debian/sun-accent-popup.desktop"), `${root}/usr/share/applications/sun-accent-popup.desktop`, false);
+    }
+    var notices = `${root}/usr/share/doc/sun-accent-popup`;
+    try install(String("LICENSE"), `${notices}/copyright`, false);
+    try install(String("build/sun-version.txt"), `${notices}/sun-version.txt`, false);
+    var ui = source("SUN_UI_SOURCE", "build/dependencies/sun_ui");
+    var gtk = source("SUN_GOBJECT_SOURCE", "build/dependencies/sun_gobject");
+    try install(`${ui}/LICENSE`, `${notices}/copyright.sun_ui`, false);
+    try install(`${gtk}/LICENSE`, `${notices}/copyright.sun_gobject`, false);
+    try install(String("/usr/share/doc/sun/copyright"), `${notices}/copyright.sun`, false);
+    return SystemResult.Ok;
+  }
+
+  /** Generates exact linked-library dependencies and builds a root-owned Debian archive. */
+  public function deb() SystemResult<void> {
+    var a = make_heap_allocator();
+    var architecture = std.process.Command(a, "dpkg");
+    architecture.add_arg("--print-architecture");
+    var arch = try capture(architecture);
+    arch.trim();
+    if (not arch.equals_literal("amd64")) {
+      return SystemResult.Error(Error(1, "The initial release supports amd64 only"));
+    }
+    var version = try field("Version");
+    var name = try field("Source");
+    var package = `build/${name}_${version}_${arch}.deb`;
+    try stage(false);
+    var target = try build_targets.load("sun_accent_popup");
+    var dependencies = std.process.Command(a, "dpkg-shlibdeps");
+    dependencies.add_arg("-O");
+    dependencies.add_arg("-e");
+    dependencies.add_arg(target.output);
+    var variables = try capture(dependencies);
+    variables.append("misc:Depends=\n");
+    var variables_path = String("build/accent-deb/substvars");
+    try std.io.write_string(variables_path, variables);
+    var mkdir = std.process.Command(a, "mkdir");
+    mkdir.add_arg("-p");
+    mkdir.add_arg("build/accent-deb/root/DEBIAN");
+    var created = try capture(mkdir);
+    var control = std.process.Command(a, "dpkg-gencontrol");
+    control.add_arg("-psun-accent-popup");
+    control.add_arg("-Pbuild/accent-deb/root");
+    control.add_arg("-Tbuild/accent-deb/substvars");
+    control.add_arg("-fbuild/accent-deb/files");
+    control.add_arg("-Obuild/accent-deb/root/DEBIAN/control");
+    var generated = try capture(control);
+    var archive = std.process.Command(a, "dpkg-deb");
+    archive.add_arg("--root-owner-group");
+    archive.add_arg("--build");
+    archive.add_arg("build/accent-deb/root");
+    archive.add_arg(package);
+    var output = try capture(archive);
+    print(output);
+    return SystemResult.Ok;
+  }
+
+  /** Creates both distribution formats from the same tested executable. */
+  public function package() SystemResult<void> {
+    try stage(true);
+    return deb();
+  }
+}
+
+/** Reports payload staging failures to the build task. */
+function main() i32 {
+  return match accent_package.package() {
+    SystemResult.Ok => 0,
+    SystemResult.Error(error) => {
+      eprintln(error.message());
+      return 1;
+    }
+  };
+}
+manifest { libraries: ["stdlib.moon"], source_files: ["targets.sun"] }

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component>
+  <name>org.freedesktop.IBus.SunAccentPopup</name>
+  <description>Hold a key to select an accented character</description>
+  <exec>/usr/bin/sun_accent_popup --ibus</exec>
+  <version>0.1.0</version>
+  <author>namo-robotics</author>
+  <license>MIT</license>
+  <homepage>https://github.com/namo-robotics/sun_accent_popup</homepage>
+  <textdomain>sun-accent-popup</textdomain>
+  <engines>
+    <engine>
+      <name>sun-accent-popup</name>
+      <longname>Sun Accent Popup</longname>
+      <description>Hold Latin letters for accent choices</description>
+      <language>en</language>
+      <license>MIT</license>
+      <author>namo-robotics</author>
+      <icon>input-keyboard</icon>
+      <layout>us</layout>
+      <symbol>á</symbol>
+    </engine>
+  </engines>
+</component>

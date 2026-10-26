@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build development image
         run: docker build -t sun-accent-popup-dev .
-      - name: Build dependencies and test
+      - name: Download release dependencies, test, and package
         # The runner UID has no writable home in the image; keep GTK data and caches in the workspace.
         run: >-
           docker run --rm --user "$(id -u):$(id -g)"
@@ -23,18 +23,114 @@ jobs:
           -e XDG_DATA_HOME=/workspaces/sun_accent_popup/tmp/ci/data
           -e XDG_CACHE_HOME=/workspaces/sun_accent_popup/tmp/ci/cache
           -e XDG_CONFIG_HOME=/workspaces/sun_accent_popup/tmp/ci/config
-          -e GIT_CONFIG_COUNT=1
-          -e GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf
-          -e GIT_CONFIG_VALUE_0=git@github.com:
           -v "$PWD:/workspaces/sun_accent_popup" sun-accent-popup-dev
           bash -o pipefail -c 'mkdir -p build "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" &&
-          { vcs import --input deps.repos . && ./scripts/build-dependencies.sh && ./build.sh; } 2>&1 | tee build/test-results.log'
+          { ./scripts/install-dependencies.sh && ./build.sh --package; } 2>&1 | tee build/test-results.log'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: sun-accent-popup-linux
           path: |
+            build/*.deb
             build/sun_accent_popup
             build/sun-version.txt
             build/test-results.log
             tmp/ibus-test/*.log
+            tmp/snap-test/*.log
+      - name: Archive tested Snap payload
+        run: tar -C build/accent-package/root -czf build/snap-payload.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snap-payload
+          if-no-files-found: error
+          path: build/snap-payload.tar.gz
+  snap:
+    needs: accent
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: snap-payload
+          path: build
+      - name: Restore tested payload with executable permissions
+        run: |
+          mkdir -p build/accent-package/root
+          tar -xzf build/snap-payload.tar.gz -C build/accent-package/root
+      - name: Build Snap
+        id: snapcraft
+        uses: canonical/action-build@v1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sun-accent-popup-snap-amd64
+          if-no-files-found: error
+          path: ${{ steps.snapcraft.outputs.snap }}
+  publish-snap:
+    needs: snap
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sun-accent-popup-snap-amd64
+          path: build/release
+      - name: Locate built Snap
+        id: package
+        shell: bash
+        run: |
+          shopt -s nullglob
+          packages=(build/release/*.snap)
+          test "${#packages[@]}" -eq 1
+          echo "path=${packages[0]}" >> "$GITHUB_OUTPUT"
+      - name: Publish to Snap Store edge
+        if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        uses: canonical/action-publish@v1
+        with:
+          snap: ${{ steps.package.outputs.path }}
+          release: edge
+      - name: Explain missing Store setup
+        if: env.SNAPCRAFT_STORE_CREDENTIALS == ''
+        run: echo 'Snap built but not published. Register sun-accent-popup and add SNAPCRAFT_STORE_CREDENTIALS; see docs/releases.md.' >> "$GITHUB_STEP_SUMMARY"
+
+  publish-dev:
+    needs: accent
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sun-accent-popup-linux
+          path: build/release
+      - name: Move dev tag to the tested commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ref = 'tags/dev';
+            try {
+              await github.rest.git.updateRef({...context.repo, ref, sha: context.sha, force: true});
+            } catch (error) {
+              if (error.status !== 404 && error.status !== 422) throw error;
+              await github.rest.git.createRef({...context.repo, ref: `refs/${ref}`, sha: context.sha});
+            }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev
+          target_commitish: ${{ github.sha }}
+          name: Development Build
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: |
+            build/release/*.deb
+            build/release/sun-version.txt
+          body: |
+            Latest tested development build from main.
+
+            Commit: ${{ github.sha }}
+
+            Debian package for amd64, built on Ubuntu 26.04; includes IBus input source registration.
+            Snap builds are published separately to the Snap Store edge channel
+            when Store credentials are configured.

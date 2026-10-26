@@ -3,8 +3,9 @@ using std;
 /** Builds the accent application against independently managed UI and GTK dependency bundles. */
 module accent_build {
 
-  /** Runs a command and preserves its failure status. */
+  /** Runs a noninteractive build command without exposing the controlling terminal. */
   function run(command: ref std.process.Command) SystemResult<void> {
+    command.set_stdin(std.process.Stdio.Null);
     var status = try command.status();
     if (status != 0) {
       return SystemResult.Error(Error(status, "Build command failed"));
@@ -33,8 +34,8 @@ module accent_build {
     command.add_arg("-o");
     command.add_arg(target.output);
     command.add_arg("--lib-path");
-    command.add_arg(setting("SUN_UI_BUILD", "src/sun_ui/build"));
-    var dependency = setting("SUN_GOBJECT_BUILD", "src/sun_gobject/build");
+    command.add_arg(setting("SUN_UI_BUILD", "build/dependencies/sun_ui/build"));
+    var dependency = setting("SUN_GOBJECT_BUILD", "build/dependencies/sun_gobject/build");
     command.add_arg("--lib-path");
     command.add_arg(dependency);
     if (gtk) {
@@ -148,6 +149,23 @@ module accent_build {
     protocol.add_arg("scripts/test-ibus.sh");
     return run(protocol);
   }
+
+  /** Packages Debian and Snap payloads only after rebuilding and passing all application tests. */
+  public function package() SystemResult<void> {
+    try build();
+    try test();
+    try compile("package-tool", false);
+    var target = try build_targets.load("package-tool");
+    var command = std.process.Command(make_heap_allocator(), target.output);
+    try run(command);
+    var check = std.process.Command(make_heap_allocator(), "bash");
+    check.add_arg("scripts/test-snap-payload.sh");
+    try run(check);
+    var deb_check = std.process.Command(make_heap_allocator(), "bash");
+    deb_check.add_arg("scripts/test-snap-payload.sh");
+    deb_check.add_arg("--deb");
+    return run(deb_check);
+  }
 }
 
 /** Dispatches standalone accent application build tasks from its workspace root. */
@@ -160,8 +178,10 @@ function main(argc: i32, argv: raw_ptr<raw_ptr<i8>>) i32 {
     result = accent_build.build();
   } else if (args.size() == 2 and args[1].equals_literal("test")) {
     result = accent_build.test();
+  } else if (args.size() == 2 and args[1].equals_literal("package")) {
+    result = accent_build.package();
   } else {
-    eprintln("Usage: sun src/tools/build.sun -- [build|test]");
+    eprintln("Usage: sun src/tools/build.sun -- [build|test|package]");
     return 1;
   }
   return match result {

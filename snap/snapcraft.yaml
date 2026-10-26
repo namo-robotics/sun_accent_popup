@@ -1,0 +1,41 @@
+name: sun-accent-popup
+base: core26
+version: '0.1.0'
+summary: Hold a key to choose an accented character
+description: |
+  Type accents on a US QWERTY keyboard in compatible Ubuntu/GNOME applications.
+  Hold a supported letter, then choose an accent by number, mouse, or arrow keys.
+  Includes a practice window and an IBus engine for typing in other applications.
+  A one-time host IBus registration step is required after installation;
+  see https://github.com/namo-robotics/sun_accent_popup#install.
+grade: stable
+confinement: strict
+license: MIT
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+apps:
+  sun-accent-popup:
+    command: usr/bin/sun_accent_popup
+    desktop: usr/share/applications/sun-accent-popup.desktop
+    extensions: [gnome]
+    plugs: [desktop-legacy]
+    slots: [ui-application]
+  engine:
+    command: bin/engine
+    extensions: [gnome]
+    plugs: [desktop-legacy]
+parts:
+  accent:
+    # The package task builds, tests, and stages this payload before Snapcraft runs.
+    plugin: dump
+    source: build/accent-package/root
+    stage-packages:
+      - libibus-1.0-5
+      - librsvg2-2
+slots:
+  ui-application:
+    interface: dbus
+    bus: session
+    name: org.sunlang.UIPrototype

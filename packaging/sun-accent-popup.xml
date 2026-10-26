@@ -7,6 +7,7 @@
   <author>namo-robotics</author>
   <license>MIT</license>
   <homepage>https://github.com/namo-robotics/sun_accent_popup</homepage>
+  <textdomain>sun-accent-popup</textdomain>
   <engines>
     <engine>
       <name>sun-accent-popup</name>

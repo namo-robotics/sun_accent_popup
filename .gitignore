@@ -6,3 +6,6 @@
 /src/sun_gobject/
 __pycache__/
 *.pyc
+/*.snap
+/debian/files
+/debian/*.substvars

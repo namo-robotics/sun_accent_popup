@@ -2,8 +2,8 @@
   "root": true,
   "sun_path": [
     "build",
-    "src/sun_ui/build",
-    "src/sun_gobject/build"
+    "build/dependencies/sun_ui/build",
+    "build/dependencies/sun_gobject/build"
   ],
   "entrypoints": [
     {
@@ -36,6 +36,12 @@
       "path": "tests/ibus_client.c",
       "type": "binary",
       "output_name": "build/ibus-client"
+    },
+    {
+      "name": "package-tool",
+      "path": "src/tools/package.sun",
+      "type": "binary",
+      "output_name": "build/accent-package-tool"
     }
   ]
 }

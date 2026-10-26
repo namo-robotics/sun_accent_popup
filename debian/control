@@ -1,0 +1,13 @@
+Source: sun-accent-popup
+Section: utils
+Priority: optional
+Maintainer: David Brown <davidwbrwn@gmail.com>
+Standards-Version: 4.7.0
+Homepage: https://github.com/namo-robotics/sun_accent_popup
+
+Package: sun-accent-popup
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, ibus
+Description: hold a key to choose an accented character
+ An IBus input method for US QWERTY keyboards on Ubuntu/GNOME,
+ with a separate practice window. Includes desktop input source registration.
