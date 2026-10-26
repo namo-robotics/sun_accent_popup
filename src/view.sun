@@ -44,7 +44,7 @@ module accent_app {
   /** Runs the independent practice window or checks its native text event pipeline. */
   public function run(automated: bool) SystemResult<void> {
     var title = String("Sun Accent Popup");
-    var renderer = try ui_gtk.Renderer(title);
+    var renderer = try ui_gtk.Renderer(title, String("org.namo_robotics.AccentPopup"));
     try renderer.set_default_size(720, 340);
     var session = ui.Session<accent.State>(accent.State(), view, handle);
     try session.render(renderer);
