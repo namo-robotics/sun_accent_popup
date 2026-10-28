@@ -87,10 +87,13 @@ jobs:
           echo "path=${packages[0]}" >> "$GITHUB_OUTPUT"
       - name: Publish to Snap Store edge
         if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
-        uses: canonical/action-publish@v1
-        with:
-          snap: ${{ steps.package.outputs.path }}
-          release: edge
+        shell: bash
+        env:
+          SNAP_PACKAGE: ${{ steps.package.outputs.path }}
+        run: |
+          sudo snap install --classic snapcraft
+          snapcraft upload "$SNAP_PACKAGE" --release edge 2>&1 | tee build/release/upload.log ||
+            grep -Fx -- '- binary_sha3_384: A file with this exact same content has already been uploaded' build/release/upload.log
       - name: Explain missing Store setup
         if: env.SNAPCRAFT_STORE_CREDENTIALS == ''
         run: echo 'Snap built but not published. Register sun-accent-popup and add SNAPCRAFT_STORE_CREDENTIALS; see docs/releases.md.' >> "$GITHUB_STEP_SUMMARY"
