@@ -43,3 +43,8 @@ Enable the input source as described above.
 
 See [development and troubleshooting](docs/development.md) or
 [releases, Snap, and migration](docs/releases.md) for details.
+
+## Shared development container
+
+See [.devcontainer/README.md](.devcontainer/README.md) for the applied Sun template
+version, project-specific settings, and rebuild instructions.
