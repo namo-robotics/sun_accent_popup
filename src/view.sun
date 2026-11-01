@@ -18,7 +18,11 @@ module accent_app {
     label(result, 1, String("Sun Accent Popup"));
     label(result, 2, String("Select Sun Accent Popup in GNOME’s input sources first."));
     label(result, 3, String("Hold a, c, e, i, n, o, s, u, y, or z to see accents."));
-    label(result, 4, String("Choose with a number, ← / → and Enter, or a click. Esc keeps the plain letter."));
+    label(
+      result,
+      4,
+      String("Choose with a number, ← / → and Enter, or a click. Esc keeps the plain letter.")
+    );
     var input = ui.Element(ui.Key(5), ui.Kind.TextInput);
     input.text = state.text.clone(a);
     input.action = 1;
@@ -26,13 +30,21 @@ module accent_app {
     input.min_width = 600;
     result.append(-1, input);
     label(result, 6, String("Try: café · mañana · über · français · São Paulo"));
-    label(result, 7, String("The selected input method also works in other IBus-enabled applications."));
+    label(
+      result,
+      7,
+      String("The selected input method also works in other IBus-enabled applications.")
+    );
     result.button(8, String("Clear practice text"), 2, 0);
     return result;
   }
 
   /** Retains edits in application state and clears only the practice field on request. */
-  function handle(state: ref accent.State, event: const ref ui.Event, queue: ref ui.EventQueue) SystemResult<void> {
+  function handle(
+    state: ref accent.State,
+    event: const ref ui.Event,
+    queue: ref ui.EventQueue
+  ) SystemResult<void> {
     if (event.action == 1 and event.value.kind == ui.ValueKind.Text) {
       state.text = event.value.text.clone(make_heap_allocator());
     } else if (event.action == 2) {

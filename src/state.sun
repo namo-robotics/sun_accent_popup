@@ -126,7 +126,8 @@ public module accent {
           return result;
         }
         if (key == 65361 or key == 65363) {
-          this.selected = (this.selected + (key == 65361 ? choices.size() - 1 : 1)) % choices.size();
+          this.selected = (this.selected + (key == 65361 ? choices.size() - 1 : 1)) %
+            choices.size();
           return result;
         }
         if (key == 65293 or key == 32) {

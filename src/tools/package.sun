@@ -63,11 +63,27 @@ module accent_package {
     try install(target.output.clone(a), `${root}/usr/bin/sun_accent_popup`, true);
     if (snap) {
       try install(String("snap/local/engine"), `${root}/bin/engine`, true);
-      try install(String("snap/local/sun-accent-popup.xml"), `${root}/usr/share/ibus/component/sun-accent-popup.xml`, false);
-      try install(String("snap/local/sun-accent-popup.desktop"), `${root}/usr/share/applications/sun-accent-popup.desktop`, false);
+      try install(
+        String("snap/local/sun-accent-popup.xml"),
+        `${root}/usr/share/ibus/component/sun-accent-popup.xml`,
+        false
+      );
+      try install(
+        String("snap/local/sun-accent-popup.desktop"),
+        `${root}/usr/share/applications/sun-accent-popup.desktop`,
+        false
+      );
     } else {
-      try install(String("debian/sun-accent-popup.xml"), `${root}/usr/share/ibus/component/sun-accent-popup.xml`, false);
-      try install(String("debian/sun-accent-popup.desktop"), `${root}/usr/share/applications/sun-accent-popup.desktop`, false);
+      try install(
+        String("debian/sun-accent-popup.xml"),
+        `${root}/usr/share/ibus/component/sun-accent-popup.xml`,
+        false
+      );
+      try install(
+        String("debian/sun-accent-popup.desktop"),
+        `${root}/usr/share/applications/sun-accent-popup.desktop`,
+        false
+      );
     }
     var notices = `${root}/usr/share/doc/sun-accent-popup`;
     try install(String("LICENSE"), `${notices}/copyright`, false);
@@ -141,4 +157,10 @@ function main() i32 {
     }
   };
 }
-manifest { libraries: ["stdlib.moon"], source_files: ["targets.sun"] }
+manifest {
+  libraries: [
+    "stdlib.moon"
+  ], source_files: [
+    "targets.sun"
+  ]
+}

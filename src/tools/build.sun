@@ -141,7 +141,9 @@ module accent_build {
     var acceptance = std.process.Command(a, "sh");
     acceptance.add_arg("-eu");
     acceptance.add_arg("-c");
-    acceptance.add_arg("export G_DEBUG=fatal-warnings GTK_A11Y=none GSK_RENDERER=cairo; timeout 40s dbus-run-session -- xvfb-run -a \"$1\" --self-test");
+    acceptance.add_arg(
+      "export G_DEBUG=fatal-warnings GTK_A11Y=none GSK_RENDERER=cairo; timeout 40s dbus-run-session -- xvfb-run -a \"$1\" --self-test"
+    );
     acceptance.add_arg("accent-acceptance");
     acceptance.add_arg(app.output);
     try run(acceptance);
@@ -192,4 +194,10 @@ function main(argc: i32, argv: raw_ptr<raw_ptr<i8>>) i32 {
     }
   };
 }
-manifest { libraries: ["stdlib.moon"], source_files: ["targets.sun"] }
+manifest {
+  libraries: [
+    "stdlib.moon"
+  ], source_files: [
+    "targets.sun"
+  ]
+}
