@@ -48,3 +48,11 @@ See [development and troubleshooting](docs/development.md) or
 
 See [.devcontainer/README.md](.devcontainer/README.md) for the applied Sun template
 version, project-specific settings, and rebuild instructions.
+
+### Dependency release URLs
+
+On Linux x86_64, `sun-config.json` downloads `sun_ui` and `sun_ui_gtk` directly
+from their published `.moon` URLs and verifies the pinned SHA-256 digests.
+Update each URL and digest together when adopting a newer rolling release.
+The dependency installer is still required for native archives, tools, and
+license notices. Those assets are published inside Debian packages and must be extracted before Sun can use them.
