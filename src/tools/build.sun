@@ -23,89 +23,15 @@ module accent_build {
     };
   }
 
-  /** Rebuilds a configured product so accent application freshness checks see the current sources. */
+  /** Builds a named product through the compiler's config scheduler. */
   function compile(name: static_ptr<u8>, gtk: bool) SystemResult<void> {
-    var a = make_heap_allocator();
-    var target = try build_targets.load(name);
-    var command = std.process.Command(a, setting("SUN_EXECUTABLE", "sun"));
-    command.add_arg("--dynamic");
-    command.add_arg("--force-rebuild");
-    command.add_arg("-c");
-    command.add_arg("-o");
-    command.add_arg(target.output);
-    command.add_arg("--lib-path");
-    command.add_arg(setting("SUN_UI_BUILD", "build/dependencies/sun_ui/build"));
-    var dependency = setting("SUN_GOBJECT_BUILD", "build/dependencies/sun_gobject/build");
-    command.add_arg("--lib-path");
-    command.add_arg(dependency);
-    if (gtk) {
-      command.add_arg(`-L${dependency}/native`);
-      command.add_arg("-lsun_gobject_native");
-      // The native media bindings require the system math library.
-      command.add_arg("-lm");
-      var pkg = std.process.Command(a, "pkg-config");
-      pkg.add_arg("--libs");
-      pkg.add_arg("gtk4");
-      pkg.add_arg("ibus-1.0");
-      command.add_arg("-Lbuild/native");
-      command.add_arg("-laccent_ibus");
-      var output = try pkg.output();
-      if (output.status() != 0) {
-        return SystemResult.Error(Error(1, "Install GTK development packages"));
-      }
-      var flags = output.stdout().split_whitespace(a);
-      for (var flag: ref String in flags) {
-        command.add_arg(flag);
-      }
-      command.add_arg("-l:librsvg-2.so.2");
-    }
-    command.add_arg(target.source);
+    var command = std.process.Command(make_heap_allocator(), setting("SUN_EXECUTABLE", "sun"));
+    command.add_arg("build");
+    command.add_arg("--config");
+    command.add_arg("sun-config.json");
+    command.add_arg("--entrypoint");
+    command.add_arg(name);
     return run(command);
-  }
-
-  /** Builds the narrow IBus C bridge and native protocol client using configured paths. */
-  function native(name: static_ptr<u8>, archive: bool) SystemResult<void> {
-    var a = make_heap_allocator();
-    var target = try build_targets.load(name);
-    var mkdir = std.process.Command(a, "mkdir");
-    mkdir.add_arg("-p");
-    mkdir.add_arg("build/native");
-    try run(mkdir);
-    var command = std.process.Command(a, "cc");
-    command.add_arg("-Wall");
-    command.add_arg("-Wextra");
-    command.add_arg("-Werror");
-    command.add_arg("-g");
-    var object = `${target.output}.o`;
-    if (archive) {
-      command.add_arg("-c");
-    }
-    command.add_arg(target.source);
-    command.add_arg("-o");
-    command.add_arg(archive ? object : target.output);
-    var pkg = std.process.Command(a, "pkg-config");
-    pkg.add_arg("--cflags");
-    if (not archive) {
-      pkg.add_arg("--libs");
-    }
-    pkg.add_arg("ibus-1.0");
-    var output = try pkg.output();
-    if (output.status() != 0) {
-      return SystemResult.Error(Error(1, "Install libibus-1.0-dev"));
-    }
-    var flags = output.stdout().split_whitespace(a);
-    for (var flag: ref String in flags) {
-      command.add_arg(flag);
-    }
-    try run(command);
-    if (archive) {
-      var pack = std.process.Command(a, "ar");
-      pack.add_arg("rcs");
-      pack.add_arg(target.output);
-      pack.add_arg(object);
-      try run(pack);
-    }
-    return SystemResult.Ok;
   }
 
   /** Builds the app and platform-independent tests. */
@@ -126,16 +52,14 @@ module accent_build {
     version_text.append(version_output.stderr());
     var version_path = String("build/sun-version.txt");
     try std.io.write_string(version_path, version_text);
-    try native("ibus-bridge", true);
-    try native("ibus-client", false);
-    try compile("tests", false);
+    try compile("accent_tests", false);
     return compile("sun_accent_popup", true);
   }
 
   /** Runs accent data tests and the native acceptance scenario in an isolated desktop session. */
   public function test() SystemResult<void> {
     var a = make_heap_allocator();
-    var tests = try build_targets.load("tests");
+    var tests = try build_targets.load("accent_tests");
     var check = std.process.Command(a, tests.tests);
     check.add_arg("--test-sequential");
     try run(check);
@@ -158,8 +82,8 @@ module accent_build {
   public function package() SystemResult<void> {
     try build();
     try test();
-    try compile("package-tool", false);
-    var target = try build_targets.load("package-tool");
+    try compile("accent_package_tool", false);
+    var target = try build_targets.load("accent_package_tool");
     var command = std.process.Command(make_heap_allocator(), target.output);
     try run(command);
     var check = std.process.Command(make_heap_allocator(), "bash");

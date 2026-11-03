@@ -9,3 +9,5 @@ __pycache__/
 /*.snap
 /debian/files
 /debian/*.substvars
+/sun/
+/.sun/

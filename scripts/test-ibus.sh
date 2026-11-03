@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 if [[ ${1:-} != --session ]]; then
   exec timeout 30s dbus-run-session -- xvfb-run -a bash scripts/test-ibus.sh --session < /dev/null
 fi
+build_root=$("${SUN_EXECUTABLE:-sun}" describe --config sun-config.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["build_root"])')
 mkdir -p tmp/ibus-test
 test_directory=$(mktemp -d "$PWD/tmp/ibus-test/run.XXXXXX")
 unset WAYLAND_DISPLAY
@@ -34,11 +35,11 @@ for attempt in $(seq 1 100); do
   if ! kill -0 "$daemon_pid" 2>/dev/null; then exit 1; fi
   sleep 0.05
 done
-./build/sun_accent_popup --register > tmp/ibus-test/engine.log 2>&1 &
+"$build_root/sun_accent_popup" --register > tmp/ibus-test/engine.log 2>&1 &
 engine_pid=$!
 for attempt in $(seq 1 100); do
   if ibus engine sun-accent-popup >/dev/null 2>&1; then break; fi
   if ! kill -0 "$engine_pid" 2>/dev/null; then cat tmp/ibus-test/engine.log >&2; exit 1; fi
   sleep 0.05
 done
-./build/ibus-client
+"$build_root/ibus-client"
