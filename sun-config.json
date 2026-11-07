@@ -89,28 +89,32 @@
     {
       "target": {
         "x86_64-linux-gnu": {
-          "package": "namo-robotics/sun_ui",
-          "library": "namo-robotics/sun_ui",
-          "url": "https://github.com/namo-robotics/sun_ui/releases/download/dev/sun_ui.moon",
-          "hash": "af6e9f279b4d362e02cc1253d282b67a7e56c6596ae63004bf1b6d8a452fa021"
+          "git": "git@github.com:namo-robotics/sun_ui.git",
+          "version": "main",
+          "packages": {
+            "namo-robotics/sun_ui": {
+              "entrypoints": [
+                "sun_ui",
+                "sun_ui_gtk"
+              ]
+            }
+          }
         }
       }
     },
     {
       "target": {
         "x86_64-linux-gnu": {
-          "package": "namo-robotics/sun_ui",
-          "library": "namo-robotics/sun_ui_gtk",
-          "url": "https://github.com/namo-robotics/sun_ui/releases/download/dev/sun_ui_gtk.moon",
-          "hash": "bd112b7344293f0873dfa6803a67d87c042aa5f81b13da05d38556ba883e5f7b"
-        }
-      }
-    },
-    {
-      "target": {
-        "x86_64-linux-gnu": {
-          "package": "namo-robotics/sun_gobject",
-          "path": "build/dependencies/sun_gobject/package"
+          "git": "git@github.com:namo-robotics/sun_gobject.git",
+          "version": "main",
+          "packages": {
+            "namo-robotics/sun_gobject": {
+              "entrypoints": [
+                "sun_gobject",
+                "sun_gtk"
+              ]
+            }
+          }
         }
       }
     }

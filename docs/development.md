@@ -19,7 +19,8 @@ an ordinary client; closing it does not stop the input method.
 
 The dev container provides Sun, GTK, IBus, and the test dependencies. For a native
 Ubuntu setup, install Sun with `./scripts/bootstrap-sun.sh` and install GTK 4,
-`libibus-1.0-dev`, `ibus`, `pkg-config`, a C compiler, Xvfb, xauth, and dbus-x11.
+`libibus-1.0-dev`, `ibus`, `pkg-config`, GIR metadata, CMake, Ninja,
+GStreamer development packages, `libx11-dev`, `libxext-dev`, a C compiler, Xvfb, xauth, and dbus-x11.
 The Sun compiler and all dependency bundles must be built with compatible versions.
 
 From this repository root:
@@ -29,18 +30,14 @@ From this repository root:
 ./build.sh
 ```
 
-Dependencies come from published `sun_ui` and `sun_gobject` Debian packages,
-extracted under `build/dependencies/`. `deps.repos` imports no repositories.
-The installer verifies the compiler version before replacing existing bundles;
-missing assets or mismatches stop setup without falling back to source builds.
+Sun resolves the Git packages selected in `sun-config.json` and builds their
+entrypoints and prerequisites with the application's compiler. Native GTK
+libraries and GIR metadata must be installed; the dev container includes them.
+Setup retains licenses in `build/dependencies/`; `deps.repos` imports no repositories.
 
-The default release tag is `dev`. `SUN_UI_RELEASE` and `SUN_GOBJECT_RELEASE`
-select other tags containing the same asset names. For offline builds, download
-both release packages into one directory and use:
-
-```sh
-./scripts/install-dependencies.sh --from-directory /path/to/packages
-```
+Dependencies use SSH and `main`. Change `version` to select a branch, tag, or
+commit. Refresh cached revisions with `sun build --refresh-sources`. CI uses
+HTTPS. The old release-directory installer option is no longer used.
 
 Run all commands from the standalone `sun_accent_popup` repository root.
 
