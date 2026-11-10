@@ -13,8 +13,13 @@ fi
 ./scripts/bootstrap-sun.sh
 compiler=${SUN_EXECUTABLE:-sun}
 for dependency in sun_ui sun_gobject; do
-  root=$("$compiler" resolve --config sun-config.json --dependency "namo-robotics/$dependency" |
-    python3 -c 'import json, sys; print(json.load(sys.stdin)["root"])')
+  # Resolve emits build progress before its final JSON record.
+  resolution=$("$compiler" resolve --config sun-config.json --dependency "namo-robotics/$dependency")
+  root=$(python3 -c 'import json, sys
+lines = sys.stdin.read().splitlines()
+for line in lines:
+    print(line, file=sys.stderr)
+print(json.loads(lines[-1] if lines else "")["root"])' <<< "$resolution")
   mkdir -p "build/dependencies/$dependency"
   install -m 644 "$root/share/$dependency/LICENSE" "build/dependencies/$dependency/LICENSE"
 done
