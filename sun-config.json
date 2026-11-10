@@ -87,36 +87,36 @@
   "package_id": "namo-robotics/sun_accent_popup",
   "dependencies": [
     {
-      "target": {
-        "x86_64-linux-gnu": {
-          "git": "git@github.com:namo-robotics/sun_ui.git",
-          "version": "main",
-          "packages": {
-            "namo-robotics/sun_ui": {
-              "entrypoints": [
-                "sun_ui",
-                "sun_ui_gtk"
-              ]
-            }
-          }
+      "type": "git",
+      "url": "git@github.com:namo-robotics/sun_ui.git",
+      "version": "main",
+      "packages": {
+        "namo-robotics/sun_ui": {
+          "entrypoints": [
+            "sun_ui",
+            "sun_ui_gtk"
+          ]
         }
-      }
+      },
+      "supported_targets": [
+        "x86_64-linux-gnu"
+      ]
     },
     {
-      "target": {
-        "x86_64-linux-gnu": {
-          "git": "git@github.com:namo-robotics/sun_gobject.git",
-          "version": "main",
-          "packages": {
-            "namo-robotics/sun_gobject": {
-              "entrypoints": [
-                "sun_gobject",
-                "sun_gtk"
-              ]
-            }
-          }
+      "type": "git",
+      "url": "git@github.com:namo-robotics/sun_gobject.git",
+      "version": "main",
+      "packages": {
+        "namo-robotics/sun_gobject": {
+          "entrypoints": [
+            "sun_gobject",
+            "sun_gtk"
+          ]
         }
-      }
+      },
+      "supported_targets": [
+        "x86_64-linux-gnu"
+      ]
     }
   ],
   "steps": [
