@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build development image
+      - name: Build development image and install system dependencies
         run: docker build -t sun-accent-popup-dev .
       - name: Build Git dependencies, test, and package
         # The runner UID has no writable home in the image; keep Sun and GTK caches in the workspace.
