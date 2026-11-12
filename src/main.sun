@@ -17,7 +17,6 @@ function main(argc: i32, argv: raw_ptr<raw_ptr<i8>>) Result<i32> {
   return Result.Ok(0);
 }
 manifest {
-  id: "namo-robotics/sun_accent_popup"
   libraries: [
     "stdlib.moon",
     "${namo-robotics/sun_ui}/lib/sun_ui.moon",

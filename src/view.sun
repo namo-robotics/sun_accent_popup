@@ -98,7 +98,7 @@ module accent_app {
       return std.Result.Ok;
     }
     while (renderer.running()) {
-      renderer.poll(session.tree, session.queue, true);
+      try renderer.poll(session.tree, session.queue, true);
       try session.dispatch(renderer);
     }
     session.tree.shutdown(renderer);
