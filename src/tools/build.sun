@@ -14,43 +14,50 @@ module accent_build {
   }
 
   /** Reads a dependency override or copies its workspace default. */
-  function setting(name: static_ptr<u8>, fallback: static_ptr<u8>) String {
+  function setting(name: static_ptr<u8>, fallback: static_ptr<u8>) AllocationResult<String> {
     var a = make_heap_allocator();
-    var env = std.env.Env(a);
-    return match env.get(name) {
-      Option.Some(value) => value.clone(a),
-      Option.None => String(fallback)
-    };
+    var env = try std.env.Env(a);
+    return AllocationResult.Ok(
+      match env.get(name) {
+        Option.Some(value) => try value.clone(a),
+        Option.None => try String(fallback)
+      }
+    );
   }
 
   /** Builds a named product through the compiler's config scheduler. */
   function compile(name: static_ptr<u8>, gtk: bool) SystemResult<void> {
-    var command = std.process.Command(make_heap_allocator(), setting("SUN_EXECUTABLE", "sun"));
-    command.add_arg("build");
-    command.add_arg("--config");
-    command.add_arg("sun-config.json");
-    command.add_arg("--entrypoint");
-    command.add_arg(name);
+    var command = try std.process.Command(
+      make_heap_allocator(),
+      try setting("SUN_EXECUTABLE", "sun")
+    );
+
+    try command.add_arg("build");
+    try command.add_arg("--config");
+    try command.add_arg("sun-config.json");
+    try command.add_arg("--entrypoint");
+    try command.add_arg(name);
     return run(command);
   }
 
   /** Builds the app and platform-independent tests. */
   public function build() SystemResult<void> {
     var a = make_heap_allocator();
-    var mkdir = std.process.Command(a, "mkdir");
-    mkdir.add_arg("-p");
-    mkdir.add_arg("build");
-    mkdir.add_arg("tmp");
+    var mkdir = try std.process.Command(a, "mkdir");
+    try mkdir.add_arg("-p");
+    try mkdir.add_arg("build");
+    try mkdir.add_arg("tmp");
     try run(mkdir);
-    var version = std.process.Command(a, setting("SUN_EXECUTABLE", "sun"));
-    version.add_arg("--version");
+    var version = try std.process.Command(a, try setting("SUN_EXECUTABLE", "sun"));
+
+    try version.add_arg("--version");
     var version_output = try version.output();
     if (version_output.status() != 0) {
       return SystemResult.Error(Error(1, "Cannot identify the Sun compiler"));
     }
-    var version_text = version_output.stdout().clone(a);
-    version_text.append(version_output.stderr());
-    var version_path = String("build/sun-version.txt");
+    var version_text = try version_output.stdout().clone(a);
+    try version_text.append(version_output.stderr());
+    var version_path = try String("build/sun-version.txt");
     try std.io.write_string(version_path, version_text);
     try compile("accent_tests", false);
     return compile("sun_accent_popup", true);
@@ -60,21 +67,21 @@ module accent_build {
   public function test() SystemResult<void> {
     var a = make_heap_allocator();
     var tests = try build_targets.load("accent_tests");
-    var check = std.process.Command(a, tests.tests);
-    check.add_arg("--test-sequential");
+    var check = try std.process.Command(a, tests.tests);
+    try check.add_arg("--test-sequential");
     try run(check);
     var app = try build_targets.load("sun_accent_popup");
-    var acceptance = std.process.Command(a, "sh");
-    acceptance.add_arg("-eu");
-    acceptance.add_arg("-c");
-    acceptance.add_arg(
+    var acceptance = try std.process.Command(a, "sh");
+    try acceptance.add_arg("-eu");
+    try acceptance.add_arg("-c");
+    try acceptance.add_arg(
       "export G_DEBUG=fatal-warnings GTK_A11Y=none GSK_RENDERER=cairo; timeout 40s dbus-run-session -- xvfb-run -a \"$1\" --self-test"
     );
-    acceptance.add_arg("accent-acceptance");
-    acceptance.add_arg(app.output);
+    try acceptance.add_arg("accent-acceptance");
+    try acceptance.add_arg(app.output);
     try run(acceptance);
-    var protocol = std.process.Command(a, "bash");
-    protocol.add_arg("scripts/test-ibus.sh");
+    var protocol = try std.process.Command(a, "bash");
+    try protocol.add_arg("scripts/test-ibus.sh");
     return run(protocol);
   }
 
@@ -84,23 +91,26 @@ module accent_build {
     try test();
     try compile("accent_package_tool", false);
     var target = try build_targets.load("accent_package_tool");
-    var command = std.process.Command(make_heap_allocator(), target.output);
+    var command = try std.process.Command(make_heap_allocator(), target.output);
+
     try run(command);
-    var check = std.process.Command(make_heap_allocator(), "bash");
-    check.add_arg("scripts/test-snap-payload.sh");
+    var check = try std.process.Command(make_heap_allocator(), "bash");
+
+    try check.add_arg("scripts/test-snap-payload.sh");
     try run(check);
-    var deb_check = std.process.Command(make_heap_allocator(), "bash");
-    deb_check.add_arg("scripts/test-snap-payload.sh");
-    deb_check.add_arg("--deb");
+    var deb_check = try std.process.Command(make_heap_allocator(), "bash");
+
+    try deb_check.add_arg("scripts/test-snap-payload.sh");
+    try deb_check.add_arg("--deb");
     return run(deb_check);
   }
 }
 
 /** Dispatches standalone accent application build tasks from its workspace root. */
-function main(argc: i32, argv: raw_ptr<raw_ptr<i8>>) i32 {
+function main(argc: i32, argv: raw_ptr<raw_ptr<i8>>) AllocationResult<i32> {
   var a = make_heap_allocator();
-  var env = std.env.Env(a);
-  var args = env.args(argc, argv);
+  var env = try std.env.Env(a);
+  var args = try env.args(argc, argv);
   var result: SystemResult<void> = SystemResult.Ok;
   if (args.size() == 2 and args[1].equals_literal("build")) {
     result = accent_build.build();
@@ -109,16 +119,18 @@ function main(argc: i32, argv: raw_ptr<raw_ptr<i8>>) i32 {
   } else if (args.size() == 2 and args[1].equals_literal("package")) {
     result = accent_build.package();
   } else {
-    eprintln("Usage: sun src/tools/build.sun -- [build|test|package]");
-    return 1;
+    std.io.eprintln("Usage: sun src/tools/build.sun -- [build|test|package]");
+    return AllocationResult.Ok(1);
   }
-  return match result {
-    SystemResult.Ok => 0,
-    SystemResult.Error(error) => {
-      eprintln(error.message());
-      return 1;
+  return AllocationResult.Ok(
+    match result {
+      SystemResult.Ok => 0,
+      SystemResult.Error(error) => {
+        std.io.eprintln(try error.message());
+        return AllocationResult.Ok(1);
+      }
     }
-  };
+  );
 }
 manifest {
   libraries: [
