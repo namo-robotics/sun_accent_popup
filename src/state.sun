@@ -4,7 +4,7 @@ using std;
 public module accent {
 
   /** Returns space-separated candidates for a Latin key, preserving the typed case. */
-  public function candidates(key: u32) AllocationResult<String> {
+  public function candidates(key: u32) String throws {
     return match key {
       97 => String("à á â ä æ ã å ā"),
       65 => String("À Á Â Ä Æ Ã Å Ā"),
@@ -35,8 +35,8 @@ public module accent {
     public var text: String;
 
     /** Initializes owned storage and reports allocation failure. */
-    init() AllocationResult<void> {
-      this.text = try String("");
+    init() throws {
+      this.text = String("");
     }
   }
 }
@@ -51,8 +51,8 @@ public module accent {
     public var arm: bool = false;
 
     /** Initializes owned storage and reports allocation failure. */
-    init() AllocationResult<void> {
-      this.commit = try String("");
+    init() throws {
+      this.commit = String("");
     }
   }
 
@@ -73,21 +73,21 @@ public module accent {
     }
 
     /** Commits a valid candidate and suppresses remaining repeats of the original key. */
-    method choose(effect: ref Effects, index: i64) AllocationResult<void> {
+    method choose(effect: ref Effects, index: i64) void throws {
       var a = make_heap_allocator();
-      var text = try candidates(this.pending);
-      var values = try text.split_whitespace(a);
+      var text = candidates(this.pending);
+      var values = text.split_whitespace(a);
       if (this.popup and index >= 0 and index < values.size()) {
-        try effect.commit.append(values[index]);
+        effect.commit.append(values[index]);
         this.finish();
       }
 
-      return AllocationResult.Ok;
+      return;
     }
 
     /** Handles keys, hold expiry, context reset, mouse choice, and sensitive-field changes. */
-    public method handle(kind: u32, key: u32, code: u32, modifiers: u32) AllocationResult<Effects> {
-      var result = try Effects();
+    public method handle(kind: u32, key: u32, code: u32, modifiers: u32) Effects throws {
+      var result = Effects();
       if (kind == 2 or kind == 4) {
         this.finish();
         this.held = 0;
@@ -95,15 +95,15 @@ public module accent {
         if (kind == 4) {
           this.sensitive = key != 0;
         }
-        return AllocationResult.Ok(result);
+        return result;
       }
       if (kind == 1) {
         this.popup = this.pending != 0 and this.held != 0;
-        return AllocationResult.Ok(result);
+        return result;
       }
       if (kind == 3) {
-        try this.choose(result, _convert<i64>(key));
-        return AllocationResult.Ok(result);
+        this.choose(result, _convert<i64>(key));
+        return result;
       }
       var release = (modifiers & 1073741824) != 0;
       if (release) {
@@ -113,42 +113,42 @@ public module accent {
             this.finish();
           }
         }
-        return AllocationResult.Ok(result);
+        return result;
       }
       // Shift and Caps Lock preserve the case captured on the initial press.
       if (key == 65505 or key == 65506 or key == 65509) {
-        return AllocationResult.Ok(result);
+        return result;
       }
       // Control, Alt, Super, Hyper, Meta, and AltGr keep their native shortcut behavior.
       if (this.sensitive or (modifiers & 469762252) != 0) {
         this.finish();
         this.held = 0;
-        return AllocationResult.Ok(result);
+        return result;
       }
       if (this.held != 0 and this.code == code) {
         result.consumed = true;
-        return AllocationResult.Ok(result);
+        return result;
       }
       if (this.popup) {
         result.consumed = true;
         var a = make_heap_allocator();
-        var choices = try (try candidates(this.pending)).split_whitespace(a);
+        var choices = (candidates(this.pending)).split_whitespace(a);
         if (key >= 49 and key <= 57) {
-          try this.choose(result, _convert<i64>(key - 49));
-          return AllocationResult.Ok(result);
+          this.choose(result, _convert<i64>(key - 49));
+          return result;
         }
         if (key == 65361 or key == 65363) {
           this.selected = (this.selected + (key == 65361 ? choices.size() - 1 : 1)) %
             choices.size();
-          return AllocationResult.Ok(result);
+          return result;
         }
         if (key == 65293 or key == 32) {
-          try this.choose(result, this.selected);
-          return AllocationResult.Ok(result);
+          this.choose(result, this.selected);
+          return result;
         }
         if (key == 65307) {
           this.finish();
-          return AllocationResult.Ok(result);
+          return result;
         }
       }
       if (key == 65288 and this.pending != 0) {
@@ -156,20 +156,20 @@ public module accent {
         this.held = 0;
         this.code = 0;
         result.consumed = false;
-        return AllocationResult.Ok(result);
+        return result;
       }
       this.finish();
       this.held = 0;
       this.code = 0;
       result.consumed = false;
-      var choices = try candidates(key);
+      var choices = candidates(key);
       if (not choices.is_empty()) {
         this.pending = key;
         this.held = key;
         this.code = code;
         result.arm = true;
       }
-      return AllocationResult.Ok(result);
+      return result;
     }
   }
 }

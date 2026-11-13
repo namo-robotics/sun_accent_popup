@@ -4,133 +4,128 @@ using std;
 module accent_build {
 
   /** Runs a noninteractive build command without exposing the controlling terminal. */
-  function run(command: ref std.process.Command) SystemResult<void> {
+  function run(command: ref std.process.Command) void throws {
     command.set_stdin(std.process.Stdio.Null);
-    var status = try command.status();
+    var status = command.status();
     if (status != 0) {
-      return SystemResult.Error(Error(status, "Build command failed"));
+      throw Error(status, "Build command failed");
     }
-    return SystemResult.Ok;
+    return;
   }
 
   /** Reads a dependency override or copies its workspace default. */
-  function setting(name: static_ptr<u8>, fallback: static_ptr<u8>) AllocationResult<String> {
+  function setting(name: static_ptr<u8>, fallback: static_ptr<u8>) String throws {
     var a = make_heap_allocator();
-    var env = try std.env.Env(a);
-    return AllocationResult.Ok(
-      match env.get(name) {
-        Option.Some(value) => try value.clone(a),
-        Option.None => try String(fallback)
-      }
-    );
+    var env = std.env.Env(a);
+    return match env.get(name) {
+      Option.Some(value) => value.clone(a),
+      Option.None => String(fallback)
+    };
   }
 
   /** Builds a named product through the compiler's config scheduler. */
-  function compile(name: static_ptr<u8>, gtk: bool) SystemResult<void> {
-    var command = try std.process.Command(
+  function compile(name: static_ptr<u8>, gtk: bool) void throws {
+    var command = std.process.Command(
       make_heap_allocator(),
-      try setting("SUN_EXECUTABLE", "sun")
+      setting("SUN_EXECUTABLE", "sun")
     );
 
-    try command.add_arg("build");
-    try command.add_arg("--config");
-    try command.add_arg("sun-config.json");
-    try command.add_arg("--entrypoint");
-    try command.add_arg(name);
+    command.add_arg("build");
+    command.add_arg("--config");
+    command.add_arg("sun-config.json");
+    command.add_arg("--entrypoint");
+    command.add_arg(name);
     return run(command);
   }
 
   /** Builds the app and platform-independent tests. */
-  public function build() SystemResult<void> {
+  public function build() void throws {
     var a = make_heap_allocator();
-    var mkdir = try std.process.Command(a, "mkdir");
-    try mkdir.add_arg("-p");
-    try mkdir.add_arg("build");
-    try mkdir.add_arg("tmp");
-    try run(mkdir);
-    var version = try std.process.Command(a, try setting("SUN_EXECUTABLE", "sun"));
+    var mkdir = std.process.Command(a, "mkdir");
+    mkdir.add_arg("-p");
+    mkdir.add_arg("build");
+    mkdir.add_arg("tmp");
+    run(mkdir);
+    var version = std.process.Command(a, setting("SUN_EXECUTABLE", "sun"));
 
-    try version.add_arg("--version");
-    var version_output = try version.output();
+    version.add_arg("--version");
+    var version_output = version.output();
     if (version_output.status() != 0) {
-      return SystemResult.Error(Error(1, "Cannot identify the Sun compiler"));
+      throw Error(1, "Cannot identify the Sun compiler");
     }
-    var version_text = try version_output.stdout().clone(a);
-    try version_text.append(version_output.stderr());
-    var version_path = try String("build/sun-version.txt");
-    try std.io.write_string(version_path, version_text);
-    try compile("accent_tests", false);
+    var version_text = version_output.stdout().clone(a);
+    version_text.append(version_output.stderr());
+    var version_path = String("build/sun-version.txt");
+    std.io.write_string(version_path, version_text);
+    compile("accent_tests", false);
     return compile("sun_accent_popup", true);
   }
 
   /** Runs accent data tests and the native acceptance scenario in an isolated desktop session. */
-  public function test() SystemResult<void> {
+  public function test() void throws {
     var a = make_heap_allocator();
-    var tests = try build_targets.load("accent_tests");
-    var check = try std.process.Command(a, tests.tests);
-    try check.add_arg("--test-sequential");
-    try run(check);
-    var app = try build_targets.load("sun_accent_popup");
-    var acceptance = try std.process.Command(a, "sh");
-    try acceptance.add_arg("-eu");
-    try acceptance.add_arg("-c");
-    try acceptance.add_arg(
+    var tests = build_targets.load("accent_tests");
+    var check = std.process.Command(a, tests.tests);
+    check.add_arg("--test-sequential");
+    run(check);
+    var app = build_targets.load("sun_accent_popup");
+    var acceptance = std.process.Command(a, "sh");
+    acceptance.add_arg("-eu");
+    acceptance.add_arg("-c");
+    acceptance.add_arg(
       "export G_DEBUG=fatal-warnings GTK_A11Y=none GSK_RENDERER=cairo; timeout 40s dbus-run-session -- xvfb-run -a \"$1\" --self-test"
     );
-    try acceptance.add_arg("accent-acceptance");
-    try acceptance.add_arg(app.output);
-    try run(acceptance);
-    var protocol = try std.process.Command(a, "bash");
-    try protocol.add_arg("scripts/test-ibus.sh");
+    acceptance.add_arg("accent-acceptance");
+    acceptance.add_arg(app.output);
+    run(acceptance);
+    var protocol = std.process.Command(a, "bash");
+    protocol.add_arg("scripts/test-ibus.sh");
     return run(protocol);
   }
 
   /** Packages Debian and Snap payloads only after rebuilding and passing all application tests. */
-  public function package() SystemResult<void> {
-    try build();
-    try test();
-    try compile("accent_package_tool", false);
-    var target = try build_targets.load("accent_package_tool");
-    var command = try std.process.Command(make_heap_allocator(), target.output);
+  public function package() void throws {
+    build();
+    test();
+    compile("accent_package_tool", false);
+    var target = build_targets.load("accent_package_tool");
+    var command = std.process.Command(make_heap_allocator(), target.output);
 
-    try run(command);
-    var check = try std.process.Command(make_heap_allocator(), "bash");
+    run(command);
+    var check = std.process.Command(make_heap_allocator(), "bash");
 
-    try check.add_arg("scripts/test-snap-payload.sh");
-    try run(check);
-    var deb_check = try std.process.Command(make_heap_allocator(), "bash");
+    check.add_arg("scripts/test-snap-payload.sh");
+    run(check);
+    var deb_check = std.process.Command(make_heap_allocator(), "bash");
 
-    try deb_check.add_arg("scripts/test-snap-payload.sh");
-    try deb_check.add_arg("--deb");
+    deb_check.add_arg("scripts/test-snap-payload.sh");
+    deb_check.add_arg("--deb");
     return run(deb_check);
   }
 }
 
 /** Dispatches standalone accent application build tasks from its workspace root. */
-function main(argc: i32, argv: raw_ptr<raw_ptr<i8>>) AllocationResult<i32> {
+function main(argc: i32, argv: raw_ptr<raw_ptr<i8>>) i32 throws {
   var a = make_heap_allocator();
-  var env = try std.env.Env(a);
-  var args = try env.args(argc, argv);
-  var result: SystemResult<void> = SystemResult.Ok;
-  if (args.size() == 2 and args[1].equals_literal("build")) {
-    result = accent_build.build();
-  } else if (args.size() == 2 and args[1].equals_literal("test")) {
-    result = accent_build.test();
-  } else if (args.size() == 2 and args[1].equals_literal("package")) {
-    result = accent_build.package();
-  } else {
-    std.io.eprintln("Usage: sun src/tools/build.sun -- [build|test|package]");
-    return AllocationResult.Ok(1);
-  }
-  return AllocationResult.Ok(
-    match result {
-      SystemResult.Ok => 0,
-      SystemResult.Error(error) => {
-        std.io.eprintln(try error.message());
-        return AllocationResult.Ok(1);
-      }
+  var env = std.env.Env(a);
+  var args = env.args(argc, argv);
+  try {
+    if (args.size() == 2 and args[1].equals_literal("build")) {
+      accent_build.build();
+    } else if (args.size() == 2 and args[1].equals_literal("test")) {
+      accent_build.test();
+    } else if (args.size() == 2 and args[1].equals_literal("package")) {
+      accent_build.package();
+    } else {
+      std.io.eprintln("Usage: sun src/tools/build.sun -- [build|test|package]");
+      return 1;
     }
-  );
+
+    return 0;
+  } catch (error: std.Error) {
+    std.io.eprintln(error.message());
+    return 1;
+  }
 }
 manifest {
   libraries: [

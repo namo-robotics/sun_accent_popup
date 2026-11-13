@@ -4,32 +4,32 @@ using std;
 module catalogue_tests {
 
   /** Confirms that unsupported keys remain ordinary keyboard input. */
-  test_function unsupported_keys() std.test.AssertionResult<void> {
-    var value = try accent.candidates(98);
-    try std.test.assert(value.is_empty());
-    value = try accent.candidates(0);
-    try std.test.assert(value.is_empty());
-    return std.test.AssertionResult.Ok;
+  test_function unsupported_keys() {
+    var value = accent.candidates(98);
+    std.test.assert(value.is_empty());
+    value = accent.candidates(0);
+    std.test.assert(value.is_empty());
+    return;
   }
 
   /** Checks case-sensitive choices and the numeric selection limit. */
-  test_function case_and_selection() std.test.AssertionResult<void> {
-    var lower = try accent.candidates(97);
-    var upper = try accent.candidates(65);
-    try std.test.assert(lower.equals_literal("à á â ä æ ã å ā"));
-    try std.test.assert(upper.equals_literal("À Á Â Ä Æ Ã Å Ā"));
+  test_function case_and_selection() {
+    var lower = accent.candidates(97);
+    var upper = accent.candidates(65);
+    std.test.assert(lower.equals_literal("à á â ä æ ã å ā"));
+    std.test.assert(upper.equals_literal("À Á Â Ä Æ Ã Å Ā"));
     var a = make_heap_allocator();
     for (var key: u32 = 65; key <= 122; key += 1) {
-      var text = try accent.candidates(key);
-      var choices = try text.split_whitespace(a);
-      try std.test.assert(choices.size() <= 9);
+      var text = accent.candidates(key);
+      var choices = text.split_whitespace(a);
+      std.test.assert(choices.size() <= 9);
       for (var i: i64 = 0; i < choices.size(); i += 1) {
-        try std.test.assert(not choices[i].is_empty());
+        std.test.assert(not choices[i].is_empty());
         for (var j: i64 = 0; j < i; j += 1) {
-          try std.test.assert(not choices[i].equals(choices[j]));
+          std.test.assert(not choices[i].equals(choices[j]));
         }
       }
     }
-    return std.test.AssertionResult.Ok;
+    return;
   }
 }

@@ -32,7 +32,7 @@ public module accent_ibus {
     key: u32,
     code: u32,
     modifiers: u32
-  ) AllocationResult<i32> {
+  ) i32 throws {
     var machine = accent.Machine();
     unsafe {
       machine.pending = sa_get(engine, 0);
@@ -42,10 +42,10 @@ public module accent_ibus {
       machine.selected = _convert<i64>(sa_get(engine, 4));
       machine.sensitive = sa_get(engine, 5) != 0;
     };
-    var effect = try machine.handle(kind, key, code, modifiers);
-    var choices = try String("");
+    var effect = machine.handle(kind, key, code, modifiers);
+    var choices = String("");
     if (machine.popup) {
-      choices = try accent.candidates(machine.pending);
+      choices = accent.candidates(machine.pending);
     }
     unsafe {
       sa_set(engine, 0, machine.pending);
@@ -56,21 +56,24 @@ public module accent_ibus {
       sa_set(engine, 5, machine.sensitive ? 1 : 0);
       sa_apply(
         engine,
-        try choices.c_str(),
+        choices.c_str(),
         _convert<u32>(machine.selected),
-        try effect.commit.c_str(),
+        effect.commit.c_str(),
         effect.arm ? 1 : 0
       );
     };
-    return AllocationResult.Ok(effect.consumed ? 1 : 0);
+    return effect.consumed ? 1 : 0;
   }
 
   /** Terminates on allocation failure at the native callback boundary. */
   function dispatch(engine: raw_ptr<u8>, kind: u32, key: u32, code: u32, modifiers: u32) i32 {
-    return match dispatch_result(engine, kind, key, code, modifiers) {
-      AllocationResult.Ok(consumed) => consumed,
-      _ => { _panic("allocation failed in input method callback"); }
-    };
+    try {
+      var consumed = dispatch_result(engine, kind, key, code, modifiers);
+      return consumed;
+    } catch {
+      _panic("allocation failed in input method callback");
+      return 0;
+    }
   }
 
   /** Runs the input method independently of the settings window. */
