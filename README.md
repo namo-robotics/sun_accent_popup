@@ -1,3 +1,5 @@
+<img src="packaging/sun-accent-popup.png" alt="Sun Accent Popup icon" width="128" height="128">
+
 # Sun Accent Popup
 
 Hold a letter to choose an accent, like on macOS. Type accented characters on a
