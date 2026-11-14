@@ -1,25 +1,21 @@
 using std;
 
-/** Reads this project's named build products from sun-config.json. */
+/** Reads executable paths from the compiler's resolved build configuration. */
 module build_targets {
 
-  /** Owns the source, artifact paths, and kind of one configured build product. */
+  /** Owns the application and companion test runner paths for one build product. */
   public class Target {
-    public var source: String;
     public var output: String;
     public var tests: String;
-    public var library: bool;
 
-    /** Takes ownership of the configured paths used by compilation and execution. */
-    init(source: String, output: String, tests: String, library: bool) {
-      this.source = source;
+    /** Takes ownership of the paths returned by the compiler. */
+    init(output: String, tests: String) {
       this.output = output;
       this.tests = tests;
-      this.library = library;
     }
   }
 
-  /** Selects a named local entry with explicit paths and a binary or library type. */
+  /** Selects a named product from the compiler's entrypoint list. */
   function select(document: ref std.json.Json, name: static_ptr<u8>) Target throws {
     var a = make_heap_allocator();
     var entries = document.get("entrypoints");
@@ -27,136 +23,40 @@ module build_targets {
       var entry = entries.at(i);
       var entry_name = (entry.get("name")).as_string();
       if (entry_name.equals_literal(name)) {
-        var source = (entry.get("path")).as_string();
         var output = (entry.get("output_name")).as_string();
-        var kind = (entry.get("type")).as_string();
-        if (kind.equals_literal("library") == false and kind.equals_literal("binary") == false) {
-          throw std.json.JsonError("Expected a binary or library entrypoint", -1);
-        }
-        var tests = output.clone(a);
-        tests.append("_test");
-
-        var operation_completed_5 = false;
-        try {
-          var value = entry.get("test_binary_name");
-          operation_completed_5 = true;
-          tests = (value.as_string()).clone(a);
-        } catch (error: std.json.JsonError) {
-          if (operation_completed_5) {
-            throw;
-          }
-          tests = tests.clone(a);
-        }
-
-        return Target(
-          source.clone(a),
-          output.clone(a),
-          tests,
-          kind.equals_literal("library")
-        );
+        var tests = (entry.get("test_binary_name")).as_string();
+        return Target(output.clone(a), tests.clone(a));
       }
     }
     throw std.json.JsonError("Unknown build target", -1);
   }
 
-  /** Queries the compiler so tools share its target selection and resolved paths. */
-  function query(action: static_ptr<u8>, dependency: static_ptr<u8>) String throws {
+  /** Returns the configured compiler executable or the default found on PATH. */
+  public function compiler() String throws {
     var a = make_heap_allocator();
     var env = std.env.Env(a);
-    var executable = match env.get("SUN_EXECUTABLE") {
+    return match env.get("SUN_EXECUTABLE") {
       Option.Some(value) => value.clone(a),
       Option.None => String("sun")
     };
-    var command = std.process.Command(a, executable);
-    command.add_arg(action);
+  }
+
+  /** Loads a product without duplicating the compiler's output-path rules. */
+  public function load(name: static_ptr<u8>) Target throws {
+    var a = make_heap_allocator();
+    var command = std.process.Command(a, compiler());
+    command.add_arg("describe");
     command.add_arg("--config");
     command.add_arg("sun-config.json");
-    if (not (String(dependency)).is_empty()) {
-      command.add_arg("--dependency");
-      command.add_arg(dependency);
-    }
     var output = command.output();
     if (output.status() != 0) {
       std.io.eprint(output.stderr());
       throw Error(output.status(), "Cannot resolve build configuration");
     }
-    return output.stdout().clone(a);
-  }
-
-  /** Copies one resolved string property from the compiler's JSON response. */
-  function property(document: ref std.json.Json, key: static_ptr<u8>) String throws {
-    return ((document.get(key)).as_string()).clone(make_heap_allocator());
-  }
-
-  /** Resolves a directory property and translates malformed responses into build errors. */
-  function directory(
-    action: static_ptr<u8>,
-    key: static_ptr<u8>,
-    dependency: static_ptr<u8>
-  ) String throws {
-    var text = query(action, dependency);
-    var document_outcome: std.Option<std.json.Json> = std.Option.None;
-
+    var text = output.stdout().clone(a);
     try {
-      var value = std.json.parse_json(make_heap_allocator(), text);
-
-      document_outcome = std.Option.Some(value);
-    } catch (error: std.json.JsonError) {
-      throw Error(1, "Invalid compiler configuration response");
-    }
-
-    var document = match document_outcome {
-      std.Option.Some(value) => value,
-      std.Option.None => {
-        throw std.Error(1, "Exception handler produced no value");
-      }
-    };
-
-    try {
-      var value = property(document, key);
-
-      return value;
-    } catch (error: std.json.JsonError) {
-      throw Error(1, "Missing compiler configuration property");
-    }
-  }
-
-  /** Returns the selected directory for this project's intermediates. */
-  public function build_directory() String throws {
-    return directory("describe", "build_root", "");
-  }
-
-  /** Returns the selected package root for a declared dependency. */
-  public function dependency(name: static_ptr<u8>) String throws {
-    return directory("resolve", "root", name);
-  }
-
-  /** Loads one target, reporting malformed configuration or missing targets as build errors. */
-  public function load(name: static_ptr<u8>) Target throws {
-    var a = make_heap_allocator();
-    var text = query("describe", "");
-    var document_outcome: std.Option<std.json.Json> = std.Option.None;
-
-    try {
-      var value = std.json.parse_json(a, text);
-
-      document_outcome = std.Option.Some(value);
-    } catch (error: std.json.JsonError) {
-      std.io.eprintln(error.message());
-      throw Error(1, "Cannot parse sun-config.json");
-    }
-
-    var document = match document_outcome {
-      std.Option.Some(value) => value,
-      std.Option.None => {
-        throw std.Error(1, "Exception handler produced no value");
-      }
-    };
-
-    try {
-      var value = select(document, name);
-
-      return value;
+      var document = std.json.parse_json(a, text);
+      return select(document, name);
     } catch (error: std.json.JsonError) {
       std.io.eprintln(name);
       std.io.eprintln(error.message());

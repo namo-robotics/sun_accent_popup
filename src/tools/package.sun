@@ -74,28 +74,18 @@ module accent_package {
         `${root}/bin/engine`,
         true
       );
-      install(
-        String("snap/local/sun-accent-popup.xml"),
-        `${root}/usr/share/ibus/component/sun-accent-popup.xml`,
-        false
-      );
-      install(
-        String("snap/local/sun-accent-popup.desktop"),
-        `${root}/usr/share/applications/sun-accent-popup.desktop`,
-        false
-      );
-    } else {
-      install(
-        String("debian/sun-accent-popup.xml"),
-        `${root}/usr/share/ibus/component/sun-accent-popup.xml`,
-        false
-      );
-      install(
-        String("debian/sun-accent-popup.desktop"),
-        `${root}/usr/share/applications/sun-accent-popup.desktop`,
-        false
-      );
     }
+    var assets = String(snap ? "snap/local" : "debian");
+    install(
+      `${assets}/sun-accent-popup.xml`,
+      `${root}/usr/share/ibus/component/sun-accent-popup.xml`,
+      false
+    );
+    install(
+      `${assets}/sun-accent-popup.desktop`,
+      `${root}/usr/share/applications/sun-accent-popup.desktop`,
+      false
+    );
     var notices = `${root}/usr/share/doc/sun-accent-popup`;
     install(
       String("LICENSE"),

@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 if [[ ${1:-} != --session ]]; then
   exec timeout 30s dbus-run-session -- xvfb-run -a bash scripts/test-ibus.sh --session < /dev/null
 fi
-build_root=$("${SUN_EXECUTABLE:-sun}" describe --config sun-config.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["build_root"])')
+build_root=$("${SUN_EXECUTABLE:-sun}" describe --config sun-config.json --field build_root)
 mkdir -p tmp/ibus-test
 test_directory=$(mktemp -d "$PWD/tmp/ibus-test/run.XXXXXX")
 unset WAYLAND_DISPLAY

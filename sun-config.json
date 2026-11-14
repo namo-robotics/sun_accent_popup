@@ -40,22 +40,7 @@
           "x86_64-linux-gnu": true,
           "x86_64-linux-musl": true
         }
-      },
-      "steps": [
-        "native"
-      ],
-      "compile_args": [
-        "--dynamic",
-        "-L${SUN_BUILD}/native",
-        "-laccent_ibus",
-        "-L${namo-robotics/sun_gobject}/lib/native",
-        "-lsun_gobject_native",
-        "-lm"
-      ],
-      "pkg_config": [
-        "gtk4",
-        "ibus-1.0"
-      ]
+      }
     },
     {
       "name": "accent_build",

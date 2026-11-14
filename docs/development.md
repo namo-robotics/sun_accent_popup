@@ -22,6 +22,10 @@ Ubuntu setup, install Sun with `./scripts/bootstrap-sun.sh` and install GTK 4,
 `libibus-1.0-dev`, `ibus`, `pkg-config`, GIR metadata, CMake, Ninja,
 GStreamer development packages, `libx11-dev`, `libxext-dev`, a C compiler, Xvfb, xauth, and dbus-x11.
 The Sun compiler and all dependency bundles must be built with compatible versions.
+The build and packaging tools use Sun's default static linkage. They require the
+complete `x86_64-linux-musl` toolchain from `https://musl.cc/x86_64-linux-musl-cross.tgz`,
+including its C++ runtime, with its `bin` directory on `PATH`. The dev container inherits this toolchain
+under `/opt/cross` from the shared `sun_infra` development image.
 
 From this repository root:
 
@@ -117,6 +121,12 @@ The flags are documented in [Chromium's Ozone switches](https://github.com/chrom
 
 `./build.sh` runs the pure Sun catalogue/state-machine tests, the GTK practice
 window acceptance check, and a separate IBus client against a private daemon.
+The catalogue and state-machine tests also run without desktop libraries:
+
+```sh
+sun test --test-sequential tests/main.sun
+```
+
 The protocol test verifies real timeout delivery, Unicode commits, auto-repeat
 suppression, case, shortcuts, resets, sensitive fields, and two input contexts.
 It does not change your desktop input source. Automated protocol tests do not

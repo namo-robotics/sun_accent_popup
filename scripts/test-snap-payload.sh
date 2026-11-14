@@ -35,9 +35,16 @@ if not deb:
     assert os.access(payload / 'bin/engine', os.X_OK)
 assert os.access(payload / 'usr/bin/sun_accent_popup', os.X_OK)
 # Force discovery through the host IBus address file rather than inherited IBUS_ADDRESS.
-component.find('exec').text = '/usr/bin/env -u IBUS_ADDRESS SNAP=' + shlex.quote(str(payload)) + ' SNAP_REAL_HOME=' + shlex.quote(os.environ['SNAP_REAL_HOME']) + ' ' + shlex.quote(str(payload / 'bin/engine'))
 if deb:
-    component.find('exec').text = shlex.quote(str(payload / 'usr/bin/sun_accent_popup')) + ' --ibus'
+    launcher = [str(payload / 'usr/bin/sun_accent_popup'), '--ibus']
+else:
+    launcher = [
+        '/usr/bin/env', '-u', 'IBUS_ADDRESS',
+        'SNAP=' + str(payload),
+        'SNAP_REAL_HOME=' + os.environ['SNAP_REAL_HOME'],
+        str(payload / 'bin/engine'),
+    ]
+component.find('exec').text = shlex.join(launcher)
 component.write(Path(os.environ['IBUS_COMPONENT_PATH']) / 'sun-accent-popup.xml')
 PY
 env -u SNAP -u SNAP_REAL_HOME ibus-daemon --verbose --address="$IBUS_ADDRESS" --replace --panel disable --config disable --emoji-extension disable > tmp/snap-test/daemon.log 2>&1 &
@@ -58,5 +65,6 @@ for attempt in $(seq 1 5); do
   sleep 0.05
 done
 if [[ $ready != true ]]; then echo 'Packaged IBus engine failed to activate.' >&2; exit 1; fi
-./build/ibus-client
+build_root=$("${SUN_EXECUTABLE:-sun}" describe --config sun-config.json --field build_root)
+"$build_root/ibus-client"
 printf '%s\n' 'Package registration and native typing acceptance passed.'

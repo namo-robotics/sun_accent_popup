@@ -15,7 +15,6 @@
   ],
   "containerEnv": {
     "CCACHE_DIR": "/home/ubuntu/.cache/ccache",
-
     "CCACHE_MAXSIZE": "10G"
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh",

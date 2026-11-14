@@ -1,6 +1,6 @@
 using std;
 
-/** Defines the accent choices shared by the desktop input service and its settings UI. */
+/** Defines accent choices, practice text, and input behavior without desktop dependencies. */
 public module accent {
 
   /** Returns space-separated candidates for a Latin key, preserving the typed case. */
@@ -39,10 +39,6 @@ public module accent {
       this.text = String("");
     }
   }
-}
-
-/** Implements input-method behavior without native handles or desktop dependencies. */
-public module accent {
 
   /** Describes effects to apply after processing one input-method event. */
   public class Effects {
@@ -131,13 +127,12 @@ public module accent {
       }
       if (this.popup) {
         result.consumed = true;
-        var a = make_heap_allocator();
-        var choices = (candidates(this.pending)).split_whitespace(a);
         if (key >= 49 and key <= 57) {
           this.choose(result, _convert<i64>(key - 49));
           return result;
         }
         if (key == 65361 or key == 65363) {
+          var choices = (candidates(this.pending)).split_whitespace(make_heap_allocator());
           this.selected = (this.selected + (key == 65361 ? choices.size() - 1 : 1)) %
             choices.size();
           return result;
@@ -150,13 +145,6 @@ public module accent {
           this.finish();
           return result;
         }
-      }
-      if (key == 65288 and this.pending != 0) {
-        this.finish();
-        this.held = 0;
-        this.code = 0;
-        result.consumed = false;
-        return result;
       }
       this.finish();
       this.held = 0;

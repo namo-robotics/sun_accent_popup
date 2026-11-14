@@ -39,7 +39,7 @@ jobs:
           name: sun-accent-popup-linux
           path: |
             build/*.deb
-            build/sun_accent_popup
+            build/accent-package/root/usr/bin/sun_accent_popup
             build/sun-version.txt
             build/test-results.log
             tmp/ibus-test/*.log

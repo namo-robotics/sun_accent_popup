@@ -13,21 +13,11 @@ module accent_build {
     return;
   }
 
-  /** Reads a dependency override or copies its workspace default. */
-  function setting(name: static_ptr<u8>, fallback: static_ptr<u8>) String throws {
-    var a = make_heap_allocator();
-    var env = std.env.Env(a);
-    return match env.get(name) {
-      Option.Some(value) => value.clone(a),
-      Option.None => String(fallback)
-    };
-  }
-
   /** Builds a named product through the compiler's config scheduler. */
-  function compile(name: static_ptr<u8>, gtk: bool) void throws {
+  function compile(name: static_ptr<u8>) void throws {
     var command = std.process.Command(
       make_heap_allocator(),
-      setting("SUN_EXECUTABLE", "sun")
+      build_targets.compiler()
     );
 
     command.add_arg("build");
@@ -46,7 +36,7 @@ module accent_build {
     mkdir.add_arg("build");
     mkdir.add_arg("tmp");
     run(mkdir);
-    var version = std.process.Command(a, setting("SUN_EXECUTABLE", "sun"));
+    var version = std.process.Command(a, build_targets.compiler());
 
     version.add_arg("--version");
     var version_output = version.output();
@@ -57,8 +47,8 @@ module accent_build {
     version_text.append(version_output.stderr());
     var version_path = String("build/sun-version.txt");
     std.io.write_string(version_path, version_text);
-    compile("accent_tests", false);
-    return compile("sun_accent_popup", true);
+    compile("accent_tests");
+    return compile("sun_accent_popup");
   }
 
   /** Runs accent data tests and the native acceptance scenario in an isolated desktop session. */
@@ -87,7 +77,7 @@ module accent_build {
   public function package() void throws {
     build();
     test();
-    compile("accent_package_tool", false);
+    compile("accent_package_tool");
     var target = build_targets.load("accent_package_tool");
     var command = std.process.Command(make_heap_allocator(), target.output);
 
