@@ -16,8 +16,17 @@ permissions:
 jobs:
   accent:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
+      - name: Authenticate to the shared image registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build development image and install system dependencies
         run: docker build -t sun-accent-popup-dev .
       - name: Build Git dependencies, test, and package
