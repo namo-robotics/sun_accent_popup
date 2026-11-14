@@ -14,4 +14,5 @@ fi
 install -Dm755 "$build_root/sun_accent_popup" "${DESTDIR:-}/usr/local/bin/sun_accent_popup"
 install -Dm644 packaging/sun-accent-popup.xml "${DESTDIR:-}/usr/share/ibus/component/sun-accent-popup.xml"
 install -Dm644 packaging/sun-accent-popup.desktop "${DESTDIR:-}/usr/local/share/applications/sun-accent-popup.desktop"
+install -Dm644 packaging/sun-accent-popup.png "${DESTDIR:-}/usr/local/share/pixmaps/sun-accent-popup.png"
 echo 'Installed. Log out and back in, then add English → Sun Accent Popup in GNOME Settings → Keyboard → Input Sources.'

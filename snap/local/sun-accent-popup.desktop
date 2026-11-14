@@ -3,6 +3,6 @@ Type=Application
 Name=Sun Accent Popup
 Comment=Practice typing accents with the Sun input method
 Exec=sun-accent-popup
-Icon=input-keyboard
+Icon=${SNAP}/usr/share/pixmaps/sun-accent-popup.png
 Terminal=false
 Categories=Utility;Accessibility;

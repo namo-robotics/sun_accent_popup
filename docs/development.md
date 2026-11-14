@@ -69,9 +69,10 @@ uninstalled development sessions and is used by the isolated acceptance tests.
 
 The installer writes `/usr/local/bin/sun_accent_popup`,
 `/usr/share/ibus/component/sun-accent-popup.xml`, and
-`/usr/local/share/applications/sun-accent-popup.desktop`. `DESTDIR` can stage
+`/usr/local/share/applications/sun-accent-popup.desktop`, and
+`/usr/local/share/pixmaps/sun-accent-popup.png`. `DESTDIR` can stage
 those same files without installing them. To uninstall, select another input
-source, remove Sun Accent Popup from GNOME's list, delete those three files,
+source, remove Sun Accent Popup from GNOME's list, delete those files,
 and log out and back in.
 
 ## Compatibility

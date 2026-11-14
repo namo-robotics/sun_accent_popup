@@ -86,6 +86,11 @@ module accent_package {
       `${root}/usr/share/applications/sun-accent-popup.desktop`,
       false
     );
+    install(
+      String("packaging/sun-accent-popup.png"),
+      `${root}/usr/share/pixmaps/sun-accent-popup.png`,
+      false
+    );
     var notices = `${root}/usr/share/doc/sun-accent-popup`;
     install(
       String("LICENSE"),

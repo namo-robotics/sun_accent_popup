@@ -3,6 +3,6 @@ Type=Application
 Name=Sun Accent Popup
 Comment=Practice typing accents with the Sun input method
 Exec=/usr/bin/sun_accent_popup
-Icon=input-keyboard
+Icon=sun-accent-popup
 Terminal=false
 Categories=Utility;Accessibility;
