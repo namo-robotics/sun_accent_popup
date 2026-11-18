@@ -64,7 +64,7 @@ module accent_build {
     acceptance.add_arg("-eu");
     acceptance.add_arg("-c");
     acceptance.add_arg(
-      "export G_DEBUG=fatal-warnings GTK_A11Y=none GSK_RENDERER=cairo; timeout 40s dbus-run-session -- xvfb-run -a \"$1\" --self-test"
+      "export G_DEBUG=fatal-warnings GDK_DEBUG=no-portals GTK_A11Y=none GSK_RENDERER=cairo; timeout 40s dbus-run-session -- xvfb-run -a \"$1\" --self-test"
     );
     acceptance.add_arg("accent-acceptance");
     acceptance.add_arg(app.output);
