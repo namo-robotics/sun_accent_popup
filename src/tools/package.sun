@@ -1,4 +1,5 @@
 using std;
+using std.mem;
 
 /** Packages the tested application for Debian and Snapcraft. */
 module accent_package {

@@ -1,4 +1,5 @@
 using std;
+using std.mem;
 
 /** Checks the candidate catalogue independently of a desktop session. */
 module catalogue_tests {
