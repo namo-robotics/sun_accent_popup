@@ -46,6 +46,8 @@ HTTPS. The old release-directory installer option is no longer used.
 Run all commands from the standalone `sun_accent_popup` repository root.
 
 `./build.sh --build` builds only; `./build.sh --test` tests existing binaries.
+GTK acceptance tests explicitly use Xvfb’s X11 display with portal access disabled,
+so they do not connect to an inherited Wayland desktop. GTK warnings remain fatal.
 Products and native bridge paths are declared in `sun-config.json`; the build
 orchestration lives in `src/tools/`. Builds do not install or enable the input method.
 
