@@ -187,7 +187,7 @@ function main() i32 throws {
 }
 manifest {
   libraries: [
-    "stdlib.moon"
+    "sun/stdlib"
   ], source_files: [
     "targets.sun"
   ]

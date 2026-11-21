@@ -4,7 +4,7 @@ function main() i32 {
 }
 manifest {
   libraries: [
-    "stdlib.moon"
+    "sun/stdlib"
   ], source_files: [
     "../src/state.sun"
   ], test_files: [
