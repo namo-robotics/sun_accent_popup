@@ -2,13 +2,16 @@
 function main() i32 {
   return 0;
 }
+
 manifest {
-  libraries: [
-    "sun/stdlib"
-  ], source_files: [
+  source_files: [
     "../src/state.sun"
-  ], test_files: [
+  ],
+  test_files: [
     "catalogue.sun",
     "machine.sun"
   ]
+  libraries: [
+    "sun/stdlib"
+  ],
 }

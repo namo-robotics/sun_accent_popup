@@ -185,10 +185,12 @@ function main() i32 throws {
     return 1;
   }
 }
+
 manifest {
-  libraries: [
-    "sun/stdlib"
-  ], source_files: [
+  source_files: [
     "targets.sun"
   ]
+  libraries: [
+    "sun/stdlib"
+  ],
 }

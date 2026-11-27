@@ -1,11 +1,9 @@
 {
+  "package_id": "namo-robotics/sun_accent_popup",
   "root": true,
   "entrypoints": [
     {
       "name": "sun_accent_popup",
-      "path": "src/main.sun",
-      "type": "binary",
-      "export": true,
       "enabled": {
         "default": false,
         "target": {
@@ -13,6 +11,9 @@
           "x86_64-linux-musl": true
         }
       },
+      "path": "src/main.sun",
+      "type": "binary",
+      "export": true,
       "steps": [
         "native"
       ],
@@ -31,45 +32,44 @@
     },
     {
       "name": "accent_tests",
-      "path": "tests/main.sun",
-      "type": "binary",
-      "export": false,
       "enabled": {
         "default": false,
         "target": {
           "x86_64-linux-gnu": true,
           "x86_64-linux-musl": true
         }
-      }
+      },
+      "path": "tests/main.sun",
+      "type": "binary",
+      "export": false
     },
     {
       "name": "accent_build",
-      "path": "src/tools/build.sun",
-      "type": "binary",
-      "export": false,
       "enabled": {
         "default": false,
         "target": {
           "x86_64-linux-gnu": true,
           "x86_64-linux-musl": true
         }
-      }
+      },
+      "path": "src/tools/build.sun",
+      "type": "binary",
+      "export": false
     },
     {
       "name": "accent_package_tool",
-      "path": "src/tools/package.sun",
-      "type": "binary",
-      "export": false,
       "enabled": {
         "default": false,
         "target": {
           "x86_64-linux-gnu": true,
           "x86_64-linux-musl": true
         }
-      }
+      },
+      "path": "src/tools/package.sun",
+      "type": "binary",
+      "export": false
     }
   ],
-  "package_id": "namo-robotics/sun_accent_popup",
   "dependencies": [
     {
       "type": "git",
